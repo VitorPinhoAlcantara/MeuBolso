@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: meubolso-postgres
+    environment:
+      POSTGRES_DB: meubolso
+      POSTGRES_USER: meubolso
+      POSTGRES_PASSWORD: meubolso
+    ports:
+      - "5432:5432"
+    volumes:
+      - meubolso_pgdata:/var/lib/postgresql/data
+
+volumes:
+  meubolso_pgdata:

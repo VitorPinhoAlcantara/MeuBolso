@@ -1,0 +1,35 @@
+# Maven / Java build
+/target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Maven wrapper (keep binaries tracked, ignore temporary wrapper lock)
+.mvn/wrapper/maven-wrapper.jar.sha256
+
+# Logs
+*.log
+logs/
+
+# Env and local overrides
+.env
+.env.*
+!.env.example
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary/editor swap
+*.swp
+*.swo
+*~
+
+# Generated docs/artifacts
+schema_snapshot.sql
