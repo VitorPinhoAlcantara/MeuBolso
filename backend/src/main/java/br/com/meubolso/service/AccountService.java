@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Service
@@ -32,6 +33,7 @@ public class AccountService {
         account.setName(request.getName());
         account.setType(request.getType());
         account.setCurrency(request.getCurrency() == null ? "BRL" : request.getCurrency());
+        account.setBalance(request.getBalance() == null ? BigDecimal.ZERO : request.getBalance());
 
         Account saved = accountRepository.save(account);
         return toResponse(saved);
@@ -67,6 +69,7 @@ public class AccountService {
         account.setName(request.getName());
         account.setType(request.getType());
         account.setCurrency(request.getCurrency() == null ? "BRL" : request.getCurrency());
+        account.setBalance(request.getBalance() == null ? BigDecimal.ZERO : request.getBalance());
 
         Account saved = accountRepository.save(account);
         return toResponse(saved);
@@ -94,6 +97,7 @@ public class AccountService {
         response.setName(account.getName());
         response.setType(account.getType());
         response.setCurrency(account.getCurrency());
+        response.setBalance(account.getBalance());
         response.setCreatedAt(account.getCreatedAt());
         response.setUpdatedAt(account.getUpdatedAt());
         return response;

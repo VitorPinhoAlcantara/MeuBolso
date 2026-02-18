@@ -2,6 +2,7 @@ package br.com.meubolso.dto;
 
 import br.com.meubolso.domain.enums.AccountType;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -12,6 +13,7 @@ public class AccountResponse {
     private String name;
     private AccountType type;
     private String currency;
+    private BigDecimal balance;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
@@ -29,6 +31,9 @@ public class AccountResponse {
 
     public String getCurrency() { return currency; }
     public void setCurrency(String currency) { this.currency = currency; }
+
+    public BigDecimal getBalance() { return balance; }
+    public void setBalance(BigDecimal balance) { this.balance = balance; }
 
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }

@@ -10,6 +10,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -33,6 +34,9 @@ public class Account {
     @Column(nullable = false, length = 3)
     private String currency;
 
+    @Column(name = "balance", nullable = false, precision = 14, scale = 2)
+    private BigDecimal balance;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -43,6 +47,7 @@ public class Account {
     void prePersist() {
         if (id == null) id = UUID.randomUUID();
         if (currency == null) currency = "BRL";
+        if (balance == null) balance = BigDecimal.ZERO;
         var now = OffsetDateTime.now();
         createdAt = now;
         updatedAt = now;
@@ -67,6 +72,9 @@ public class Account {
 
     public String getCurrency() { return currency; }
     public void setCurrency(String currency) { this.currency = currency; }
+
+    public BigDecimal getBalance() { return balance; }
+    public void setBalance(BigDecimal balance) { this.balance = balance; }
 
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }

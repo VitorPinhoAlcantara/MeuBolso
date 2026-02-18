@@ -1,12 +1,18 @@
 package br.com.meubolso.service;
 
+import br.com.meubolso.domain.Account;
+import br.com.meubolso.domain.Category;
 import br.com.meubolso.domain.RefreshToken;
 import br.com.meubolso.domain.User;
+import br.com.meubolso.domain.enums.AccountType;
+import br.com.meubolso.domain.enums.CategoryType;
+import br.com.meubolso.repository.AccountRepository;
 import br.com.meubolso.dto.AuthLoginRequest;
 import br.com.meubolso.dto.AuthMeResponse;
 import br.com.meubolso.dto.AuthRefreshRequest;
 import br.com.meubolso.dto.AuthRegisterRequest;
 import br.com.meubolso.dto.AuthTokenResponse;
+import br.com.meubolso.repository.CategoryRepository;
 import br.com.meubolso.repository.RefreshTokenRepository;
 import br.com.meubolso.repository.UserRepository;
 import br.com.meubolso.security.AuthenticatedUser;
@@ -15,28 +21,38 @@ import io.jsonwebtoken.JwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.time.OffsetDateTime;
 
 @Service
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final AccountRepository accountRepository;
+    private final CategoryRepository categoryRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
     public AuthService(UserRepository userRepository,
+                       AccountRepository accountRepository,
+                       CategoryRepository categoryRepository,
                        RefreshTokenRepository refreshTokenRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService) {
         this.userRepository = userRepository;
+        this.accountRepository = accountRepository;
+        this.categoryRepository = categoryRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
     }
 
+    @Transactional
     public AuthTokenResponse register(AuthRegisterRequest request) {
         String normalizedEmail = request.getEmail().trim().toLowerCase();
 
@@ -49,6 +65,8 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
 
         User savedUser = userRepository.save(user);
+        createDefaultAccounts(savedUser);
+        createDefaultCategories(savedUser);
         return issueTokens(savedUser);
     }
 
@@ -127,4 +145,45 @@ public class AuthService {
 
         return new AuthTokenResponse(accessToken, refreshTokenValue, "Bearer");
     }
+
+    private void createDefaultCategories(User user) {
+        List<CategorySeed> seeds = List.of(
+                new CategorySeed("Moradia", CategoryType.EXPENSE, "#2563EB"),
+                new CategorySeed("Comida", CategoryType.EXPENSE, "#F97316"),
+                new CategorySeed("Saúde", CategoryType.EXPENSE, "#EF4444"),
+                new CategorySeed("Lazer", CategoryType.EXPENSE, "#A855F7"),
+                new CategorySeed("Transporte", CategoryType.EXPENSE, "#0EA5E9"),
+                new CategorySeed("Educação", CategoryType.EXPENSE, "#14B8A6"),
+                new CategorySeed("Assinaturas", CategoryType.EXPENSE, "#8B5CF6"),
+                new CategorySeed("Outros gastos", CategoryType.EXPENSE, "#F59E0B"),
+                new CategorySeed("Salário", CategoryType.INCOME, "#16A34A"),
+                new CategorySeed("Freelance", CategoryType.INCOME, "#22C55E"),
+                new CategorySeed("Investimentos", CategoryType.INCOME, "#10B981"),
+                new CategorySeed("Outras receitas", CategoryType.INCOME, "#06B6D4")
+        );
+
+        List<Category> categories = seeds.stream().map(seed -> {
+            Category category = new Category();
+            category.setUserId(user.getId());
+            category.setName(seed.name());
+            category.setType(seed.type());
+            category.setColor(seed.color());
+            return category;
+        }).toList();
+
+        categoryRepository.saveAll(categories);
+    }
+
+    private void createDefaultAccounts(User user) {
+        Account wallet = new Account();
+        wallet.setUserId(user.getId());
+        wallet.setName("Carteira");
+        wallet.setType(AccountType.CASH);
+        wallet.setCurrency("BRL");
+        wallet.setBalance(BigDecimal.ZERO);
+
+        accountRepository.save(wallet);
+    }
+
+    private record CategorySeed(String name, CategoryType type, String color) {}
 }
