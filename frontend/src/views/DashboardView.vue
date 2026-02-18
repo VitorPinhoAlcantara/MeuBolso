@@ -1,64 +1,169 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { onMounted, ref } from 'vue'
+import { api } from '../services/api'
 
-const router = useRouter()
-const auth = useAuthStore()
-
-const leave = async () => {
-  auth.logout()
-  await router.push('/login')
+type ExpenseByCategoryItem = {
+  categoryId: string
+  categoryName: string
+  total: number
 }
+
+type MonthlyReportResponse = {
+  year: number
+  month: number
+  totalIncome: number
+  totalExpense: number
+  net: number
+  expensesByCategory: ExpenseByCategoryItem[]
+}
+
+const loading = ref(true)
+const error = ref('')
+const report = ref<MonthlyReportResponse | null>(null)
+
+const loadReport = async () => {
+  loading.value = true
+  error.value = ''
+
+  try {
+    const now = new Date()
+    const response = await api.get<MonthlyReportResponse>('/api/v1/reports/monthly', {
+      params: {
+        year: now.getFullYear(),
+        month: now.getMonth() + 1,
+      },
+    })
+    report.value = response.data
+  } catch {
+    error.value = 'Não foi possível carregar o resumo mensal'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadReport)
 </script>
 
 <template>
-  <main class="dashboard-page">
-    <section class="dashboard-panel">
-      <h1>Dashboard</h1>
-      <p>Login realizado com sucesso. Esta tela e um placeholder inicial.</p>
-      <button type="button" @click="leave">Sair</button>
-    </section>
-  </main>
+  <section class="dashboard-grid">
+    <article class="panel">
+      <h3>Resumo do mês</h3>
+
+      <p v-if="loading" class="muted">Carregando...</p>
+      <p v-else-if="error" class="error">{{ error }}</p>
+
+      <template v-else-if="report">
+        <div class="stats">
+          <div class="stat">
+            <span>Receitas</span>
+            <strong class="ok">R$ {{ Number(report.totalIncome).toFixed(2) }}</strong>
+          </div>
+          <div class="stat">
+            <span>Despesas</span>
+            <strong class="danger">R$ {{ Number(report.totalExpense).toFixed(2) }}</strong>
+          </div>
+          <div class="stat">
+            <span>Saldo</span>
+            <strong :class="Number(report.net) >= 0 ? 'ok' : 'danger'">
+              R$ {{ Number(report.net).toFixed(2) }}
+            </strong>
+          </div>
+        </div>
+      </template>
+    </article>
+
+    <article class="panel">
+      <h3>Gastos por categoria</h3>
+
+      <p v-if="loading" class="muted">Carregando...</p>
+      <p v-else-if="error" class="error">{{ error }}</p>
+      <ul v-else-if="report?.expensesByCategory?.length" class="category-list">
+        <li v-for="item in report.expensesByCategory" :key="item.categoryId">
+          <span>{{ item.categoryName }}</span>
+          <strong>R$ {{ Number(item.total).toFixed(2) }}</strong>
+        </li>
+      </ul>
+      <p v-else class="muted">Nenhum gasto categorizado no mês.</p>
+    </article>
+  </section>
 </template>
 
 <style scoped>
-.dashboard-page {
-  min-height: 100vh;
+.dashboard-grid {
+  margin-top: 20px;
   display: grid;
-  place-items: center;
-  padding: 24px;
+  gap: 16px;
+  grid-template-columns: 1.2fr 1fr;
 }
 
-.dashboard-panel {
+.panel {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 24px;
-  width: 100%;
-  max-width: 640px;
+  padding: 18px;
 }
 
-.dashboard-panel h1 {
+.panel h3 {
   margin: 0;
 }
 
-.dashboard-panel p {
-  margin: 10px 0 20px;
+.stats {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.stat span {
   color: var(--muted);
 }
 
-.dashboard-panel button {
-  height: 40px;
-  border: 0;
-  padding: 0 18px;
-  border-radius: 10px;
-  background: var(--primary);
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
+.ok {
+  color: #15803d;
 }
 
-.dashboard-panel button:hover {
-  background: var(--primary-600);
+.danger {
+  color: var(--danger);
+}
+
+.muted {
+  color: var(--muted);
+  margin-top: 12px;
+}
+
+.error {
+  color: var(--danger);
+  margin-top: 12px;
+}
+
+.category-list {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.category-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
