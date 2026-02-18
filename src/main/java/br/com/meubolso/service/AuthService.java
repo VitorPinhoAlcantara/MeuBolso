@@ -3,6 +3,7 @@ package br.com.meubolso.service;
 import br.com.meubolso.domain.RefreshToken;
 import br.com.meubolso.domain.User;
 import br.com.meubolso.dto.AuthLoginRequest;
+import br.com.meubolso.dto.AuthMeResponse;
 import br.com.meubolso.dto.AuthRefreshRequest;
 import br.com.meubolso.dto.AuthRegisterRequest;
 import br.com.meubolso.dto.AuthTokenResponse;
@@ -101,6 +102,17 @@ public class AuthService {
                         refreshTokenRepository.save(storedToken);
                     }
                 });
+    }
+
+    public AuthMeResponse me(AuthenticatedUser currentUser) {
+        User user = userRepository.findById(currentUser.userId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
+
+        AuthMeResponse response = new AuthMeResponse();
+        response.setId(user.getId());
+        response.setEmail(user.getEmail());
+        response.setCreatedAt(user.getCreatedAt());
+        return response;
     }
 
     private AuthTokenResponse issueTokens(User user) {

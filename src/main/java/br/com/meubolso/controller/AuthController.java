@@ -1,13 +1,17 @@
 package br.com.meubolso.controller;
 
 import br.com.meubolso.dto.AuthLoginRequest;
+import br.com.meubolso.dto.AuthMeResponse;
 import br.com.meubolso.dto.AuthRefreshRequest;
 import br.com.meubolso.dto.AuthRegisterRequest;
 import br.com.meubolso.dto.AuthTokenResponse;
+import br.com.meubolso.security.AuthenticatedUser;
 import br.com.meubolso.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -48,5 +52,10 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(@Valid @RequestBody AuthRefreshRequest request) {
         authService.logout(request);
+    }
+
+    @GetMapping("/me")
+    public AuthMeResponse me(@AuthenticationPrincipal AuthenticatedUser currentUser) {
+        return authService.me(currentUser);
     }
 }

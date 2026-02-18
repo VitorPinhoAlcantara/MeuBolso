@@ -37,3 +37,9 @@ app:
 springdoc:
   swagger-ui:
     persist-authorization: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

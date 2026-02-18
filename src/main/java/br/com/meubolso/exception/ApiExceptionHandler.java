@@ -19,54 +19,54 @@ import java.util.Map;
 public class ApiExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex,
-                                                                HttpServletRequest request) {
+    public ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException ex,
+                                                             HttpServletRequest request) {
         Map<String, String> fieldErrors = new HashMap<>();
         for (FieldError error : ex.getBindingResult().getFieldErrors()) {
             fieldErrors.put(error.getField(), error.getDefaultMessage());
         }
 
-        Map<String, Object> body = baseBody(HttpStatus.BAD_REQUEST, "Validation failed", request);
-        body.put("fields", fieldErrors);
+        ApiErrorResponse body = baseBody(HttpStatus.BAD_REQUEST, "Validation failed", request);
+        body.setFields(fieldErrors);
         return ResponseEntity.badRequest().body(body);
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex,
-                                                                    HttpServletRequest request) {
-        Map<String, Object> body = baseBody(HttpStatus.valueOf(ex.getStatusCode().value()), ex.getReason(), request);
+    public ResponseEntity<ApiErrorResponse> handleResponseStatus(ResponseStatusException ex,
+                                                                 HttpServletRequest request) {
+        ApiErrorResponse body = baseBody(HttpStatus.valueOf(ex.getStatusCode().value()), ex.getReason(), request);
         return ResponseEntity.status(ex.getStatusCode()).body(body);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
-                                                                  HttpServletRequest request) {
-        Map<String, Object> body = baseBody(HttpStatus.BAD_REQUEST,
+    public ResponseEntity<ApiErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
+                                                               HttpServletRequest request) {
+        ApiErrorResponse body = baseBody(HttpStatus.BAD_REQUEST,
                 "Parâmetro inválido: " + ex.getName(), request);
         return ResponseEntity.badRequest().body(body);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, Object>> handleUnreadableBody(HttpMessageNotReadableException ex,
-                                                                    HttpServletRequest request) {
-        Map<String, Object> body = baseBody(HttpStatus.BAD_REQUEST,
+    public ResponseEntity<ApiErrorResponse> handleUnreadableBody(HttpMessageNotReadableException ex,
+                                                                 HttpServletRequest request) {
+        ApiErrorResponse body = baseBody(HttpStatus.BAD_REQUEST,
                 "Payload inválido ou mal formatado", request);
         return ResponseEntity.badRequest().body(body);
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, Object>> handleRuntime(RuntimeException ex,
-                                                             HttpServletRequest request) {
-        Map<String, Object> body = baseBody(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), request);
+    public ResponseEntity<ApiErrorResponse> handleRuntime(RuntimeException ex,
+                                                          HttpServletRequest request) {
+        ApiErrorResponse body = baseBody(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), request);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
-    private Map<String, Object> baseBody(HttpStatus status, String message, HttpServletRequest request) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", OffsetDateTime.now());
-        body.put("status", status.value());
-        body.put("error", message);
-        body.put("path", request.getRequestURI());
+    private ApiErrorResponse baseBody(HttpStatus status, String message, HttpServletRequest request) {
+        ApiErrorResponse body = new ApiErrorResponse();
+        body.setTimestamp(OffsetDateTime.now());
+        body.setStatus(status.value());
+        body.setError(message);
+        body.setPath(request.getRequestURI());
         return body;
     }
 }
