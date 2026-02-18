@@ -1,5 +1,7 @@
 package br.com.meubolso.dto;
 
+import br.com.meubolso.domain.enums.CategoryType;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -8,7 +10,7 @@ public class CategoryResponse {
     private UUID id;
     private UUID userId;
     private String name;
-    private String type;
+    private CategoryType type;
     private String color;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
@@ -22,8 +24,8 @@ public class CategoryResponse {
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+    public CategoryType getType() { return type; }
+    public void setType(CategoryType type) { this.type = type; }
 
     public String getColor() { return color; }
     public void setColor(String color) { this.color = color; }

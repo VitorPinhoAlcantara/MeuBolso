@@ -1,6 +1,6 @@
 package br.com.meubolso.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import br.com.meubolso.domain.enums.TransactionType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -17,9 +17,8 @@ public class TransactionCreateRequest {
     @NotNull
     private UUID categoryId;
 
-    @NotBlank
-    @Size(max = 20)
-    private String type;
+    @NotNull
+    private TransactionType type;
 
     @NotNull
     @Positive
@@ -47,11 +46,11 @@ public class TransactionCreateRequest {
         this.categoryId = categoryId;
     }
 
-    public String getType() {
+    public TransactionType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(TransactionType type) {
         this.type = type;
     }
 

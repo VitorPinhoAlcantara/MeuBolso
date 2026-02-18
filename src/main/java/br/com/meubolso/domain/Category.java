@@ -1,7 +1,10 @@
 package br.com.meubolso.domain;
 
+import br.com.meubolso.domain.enums.CategoryType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -23,8 +26,9 @@ public class Category {
     @Column(nullable = false, length = 100)
     private String name;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String type;
+    private CategoryType type;
 
     @Column(nullable = true, length = 20)
     private String color;
@@ -57,8 +61,8 @@ public class Category {
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+    public CategoryType getType() { return type; }
+    public void setType(CategoryType type) { this.type = type; }
 
     public String getColor() { return color; }
     public void setColor(String color) {this.color = color; }
@@ -69,6 +73,5 @@ public class Category {
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
 }
-
 
 

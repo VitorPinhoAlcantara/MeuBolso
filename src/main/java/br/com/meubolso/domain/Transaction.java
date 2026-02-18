@@ -1,7 +1,10 @@
 package br.com.meubolso.domain;
 
+import br.com.meubolso.domain.enums.TransactionType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -28,8 +31,9 @@ public class Transaction {
     @Column(name = "category_id", nullable = false)
     private UUID categoryId;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String type;
+    private TransactionType type;
 
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal amount;
@@ -93,11 +97,11 @@ public class Transaction {
         this.categoryId = categoryId;
     }
 
-    public String getType() {
+    public TransactionType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(TransactionType type) {
         this.type = type;
     }
 

@@ -1,5 +1,7 @@
 package br.com.meubolso.dto;
 
+import br.com.meubolso.domain.enums.AccountType;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -8,7 +10,7 @@ public class AccountResponse {
     private UUID id;
     private UUID userId;
     private String name;
-    private String type;
+    private AccountType type;
     private String currency;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
@@ -22,8 +24,8 @@ public class AccountResponse {
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+    public AccountType getType() { return type; }
+    public void setType(AccountType type) { this.type = type; }
 
     public String getCurrency() { return currency; }
     public void setCurrency(String currency) { this.currency = currency; }

@@ -1,6 +1,7 @@
 package br.com.meubolso.repository;
 
 import br.com.meubolso.domain.Transaction;
+import br.com.meubolso.domain.enums.TransactionType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -24,7 +25,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
   List<Transaction> findByUserWithFilters(UUID userId,
                                           LocalDate from,
                                           LocalDate to,
-                                          String type,
+                                          TransactionType type,
                                           UUID accountId,
                                           UUID categoryId);
   
@@ -36,7 +37,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
         and t.transactionDate >= :startDate
         and t.transactionDate <= :endDate
       """)
-  BigDecimal sumAmountByTypeAndPeriod(UUID userId, String type, LocalDate startDate, LocalDate endDate);
+  BigDecimal sumAmountByTypeAndPeriod(UUID userId, TransactionType type, LocalDate startDate, LocalDate endDate);
 
   @Query("""
           select
@@ -46,12 +47,15 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
           from Transaction t
           join Category c on c.id = t.categoryId
           where t.userId = :userId
-            and t.type = 'EXPENSE'
+            and t.type = :type
             and t.transactionDate >= :startDate
             and t.transactionDate <= :endDate
           group by t.categoryId, c.name
           order by total desc
           """)
-  List<ExpenseByCategoryProjection> sumExpensesByCategory(UUID userId, LocalDate startDate, LocalDate endDate);
+  List<ExpenseByCategoryProjection> sumExpensesByCategory(UUID userId,
+                                                          LocalDate startDate,
+                                                          LocalDate endDate,
+                                                          TransactionType type);
 
 }

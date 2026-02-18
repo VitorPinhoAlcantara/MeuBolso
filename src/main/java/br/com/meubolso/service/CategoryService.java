@@ -24,7 +24,7 @@ public class CategoryService {
         Category category = new Category();
         category.setUserId(userId);
         category.setName(request.getName());
-        category.setType(normalizeType(request.getType()));
+        category.setType(request.getType());
         category.setColor(request.getColor());
 
         Category saved = categoryRepository.save(category);
@@ -47,7 +47,7 @@ public class CategoryService {
         Category category = findOwnedCategory(userId, categoryId);
 
         category.setName(request.getName());
-        category.setType(normalizeType(request.getType()));
+        category.setType(request.getType());
         category.setColor(request.getColor());
 
         Category saved = categoryRepository.save(category);
@@ -68,14 +68,6 @@ public class CategoryService {
         }
 
         return category;
-    }
-
-    private String normalizeType(String type) {
-        String normalized = type == null ? null : type.trim().toUpperCase();
-        if (!"INCOME".equals(normalized) && !"EXPENSE".equals(normalized)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tipo de categoria inválido");
-        }
-        return normalized;
     }
 
     private CategoryResponse toResponse(Category category) {

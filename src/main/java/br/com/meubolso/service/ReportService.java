@@ -1,5 +1,6 @@
 package br.com.meubolso.service;
 
+import br.com.meubolso.domain.enums.TransactionType;
 import br.com.meubolso.dto.ExpenseByCategoryItem;
 import br.com.meubolso.dto.MonthlyReportResponse;
 import br.com.meubolso.repository.TransactionRepository;
@@ -28,15 +29,15 @@ public class ReportService {
         LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
 
         BigDecimal totalIncome = transactionRepository
-                .sumAmountByTypeAndPeriod(userId, "INCOME", startDate, endDate);
+                .sumAmountByTypeAndPeriod(userId, TransactionType.INCOME, startDate, endDate);
 
         BigDecimal totalExpense = transactionRepository
-                .sumAmountByTypeAndPeriod(userId, "EXPENSE", startDate, endDate);
+                .sumAmountByTypeAndPeriod(userId, TransactionType.EXPENSE, startDate, endDate);
 
         BigDecimal net = totalIncome.subtract(totalExpense);
 
         List<ExpenseByCategoryItem> expensesByCategory = transactionRepository
-                .sumExpensesByCategory(userId, startDate, endDate)
+                .sumExpensesByCategory(userId, startDate, endDate, TransactionType.EXPENSE)
                 .stream()
                 .map(p -> {
                     ExpenseByCategoryItem item = new ExpenseByCategoryItem();

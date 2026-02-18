@@ -3,6 +3,7 @@ package br.com.meubolso.service;
 import br.com.meubolso.domain.Account;
 import br.com.meubolso.domain.Category;
 import br.com.meubolso.domain.Transaction;
+import br.com.meubolso.domain.enums.TransactionType;
 import br.com.meubolso.dto.TransactionCreateRequest;
 import br.com.meubolso.dto.TransactionResponse;
 import br.com.meubolso.repository.AccountRepository;
@@ -35,15 +36,15 @@ public class TransactionService {
     public TransactionResponse create(UUID userId, TransactionCreateRequest request) {
         Account account = findOwnedAccount(userId, request.getAccountId());
         Category category = findOwnedCategory(userId, request.getCategoryId());
-        String normalizedType = normalizeType(request.getType());
+        TransactionType transactionType = request.getType();
 
-        validateBusinessRules(account, category, normalizedType, request.getAmount());
+        validateBusinessRules(account, category, transactionType, request.getAmount());
 
         Transaction transaction = new Transaction();
         transaction.setUserId(userId);
         transaction.setAccountId(account.getId());
         transaction.setCategoryId(category.getId());
-        transaction.setType(normalizedType);
+        transaction.setType(transactionType);
         transaction.setAmount(request.getAmount());
         transaction.setTransactionDate(request.getDate());
         transaction.setDescription(request.getDescription());
@@ -55,12 +56,10 @@ public class TransactionService {
     public List<TransactionResponse> findAllByUser(UUID userId,
                                                    LocalDate from,
                                                    LocalDate to,
-                                                   String type,
+                                                   TransactionType type,
                                                    UUID accountId,
                                                    UUID categoryId) {
-        String normalizedType = type == null || type.isBlank() ? null : normalizeType(type);
-
-        return transactionRepository.findByUserWithFilters(userId, from, to, normalizedType, accountId, categoryId)
+        return transactionRepository.findByUserWithFilters(userId, from, to, type, accountId, categoryId)
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -75,13 +74,13 @@ public class TransactionService {
         Transaction transaction = findOwnedTransaction(userId, transactionId);
         Account account = findOwnedAccount(userId, request.getAccountId());
         Category category = findOwnedCategory(userId, request.getCategoryId());
-        String normalizedType = normalizeType(request.getType());
+        TransactionType transactionType = request.getType();
 
-        validateBusinessRules(account, category, normalizedType, request.getAmount());
+        validateBusinessRules(account, category, transactionType, request.getAmount());
 
         transaction.setAccountId(account.getId());
         transaction.setCategoryId(category.getId());
-        transaction.setType(normalizedType);
+        transaction.setType(transactionType);
         transaction.setAmount(request.getAmount());
         transaction.setTransactionDate(request.getDate());
         transaction.setDescription(request.getDescription());
@@ -97,13 +96,13 @@ public class TransactionService {
 
     private void validateBusinessRules(Account account,
                                        Category category,
-                                       String transactionType,
+                                       TransactionType transactionType,
                                        BigDecimal amount) {
         if (amount == null || amount.signum() <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Valor da transação deve ser maior que zero");
         }
 
-        if (!category.getType().equals(transactionType)) {
+        if (!category.getType().name().equals(transactionType.name())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Tipo da categoria incompatível com o tipo da transação");
         }
@@ -145,14 +144,6 @@ public class TransactionService {
         }
 
         return category;
-    }
-
-    private String normalizeType(String type) {
-        String normalized = type == null ? null : type.trim().toUpperCase();
-        if (!"INCOME".equals(normalized) && !"EXPENSE".equals(normalized)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tipo de transação inválido");
-        }
-        return normalized;
     }
 
     private TransactionResponse toResponse(Transaction transaction) {

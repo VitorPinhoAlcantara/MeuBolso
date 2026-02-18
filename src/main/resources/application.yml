@@ -33,3 +33,7 @@ app:
       secret: ${JWT_SECRET:change-me-in-env-change-me-in-env-123456}
       access-ttl-min: ${JWT_ACCESS_TTL_MIN:15}
       refresh-ttl-days: ${JWT_REFRESH_TTL_DAYS:7}
+
+springdoc:
+  swagger-ui:
+    persist-authorization: true

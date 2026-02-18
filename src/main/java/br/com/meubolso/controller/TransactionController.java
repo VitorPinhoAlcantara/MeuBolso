@@ -1,5 +1,6 @@
 package br.com.meubolso.controller;
 
+import br.com.meubolso.domain.enums.TransactionType;
 import br.com.meubolso.dto.TransactionCreateRequest;
 import br.com.meubolso.dto.TransactionResponse;
 import br.com.meubolso.security.AuthenticatedUser;
@@ -43,7 +44,7 @@ public class TransactionController {
     public List<TransactionResponse> findAll(@AuthenticationPrincipal AuthenticatedUser currentUser,
                                              @RequestParam(required = false) LocalDate from,
                                              @RequestParam(required = false) LocalDate to,
-                                             @RequestParam(required = false) String type,
+                                             @RequestParam(required = false) TransactionType type,
                                              @RequestParam(required = false) UUID accountId,
                                              @RequestParam(required = false) UUID categoryId) {
         return transactionService.findAllByUser(currentUser.userId(), from, to, type, accountId, categoryId);

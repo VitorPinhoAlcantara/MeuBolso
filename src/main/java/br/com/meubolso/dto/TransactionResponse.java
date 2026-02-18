@@ -1,5 +1,7 @@
 package br.com.meubolso.dto;
 
+import br.com.meubolso.domain.enums.TransactionType;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -11,7 +13,7 @@ public class TransactionResponse {
     private UUID userId;
     private UUID accountId;
     private UUID categoryId;
-    private String type;
+    private TransactionType type;
     private BigDecimal amount;
     private LocalDate date;
     private String description;
@@ -50,11 +52,11 @@ public class TransactionResponse {
         this.categoryId = categoryId;
     }
 
-    public String getType() {
+    public TransactionType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(TransactionType type) {
         this.type = type;
     }
 
