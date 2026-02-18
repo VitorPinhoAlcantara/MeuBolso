@@ -4,7 +4,9 @@ import br.com.meubolso.domain.Account;
 import br.com.meubolso.dto.AccountCreateRequest;
 import br.com.meubolso.dto.AccountResponse;
 import br.com.meubolso.repository.AccountRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -38,10 +40,10 @@ public class AccountService {
 
     public AccountResponse findById(UUID userId, UUID accountId) {
         Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Conta não encontrada"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conta não encontrada"));
 
         if (!account.getUserId().equals(userId)) {
-            throw new RuntimeException("Acesso negado");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso negado");
         }
 
         return toResponse(account);
@@ -49,10 +51,10 @@ public class AccountService {
 
     public AccountResponse update(UUID userId, UUID accountId, AccountCreateRequest request) {
         Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Conta não encontrada"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conta não encontrada"));
 
         if (!account.getUserId().equals(userId)) {
-            throw new RuntimeException("Acesso negado");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso negado");
         }
 
         account.setName(request.getName());
@@ -65,10 +67,10 @@ public class AccountService {
 
     public void delete(UUID userId, UUID accountId) {
         Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Conta não encontrada"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conta não encontrada"));
 
         if (!account.getUserId().equals(userId)) {
-            throw new RuntimeException("Acesso negado");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso negado");
         }
 
         accountRepository.delete(account);
