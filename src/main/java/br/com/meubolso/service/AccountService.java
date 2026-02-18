@@ -1,14 +1,16 @@
 package br.com.meubolso.service;
 
 import br.com.meubolso.domain.Account;
+import br.com.meubolso.domain.enums.AccountType;
 import br.com.meubolso.dto.AccountCreateRequest;
 import br.com.meubolso.dto.AccountResponse;
 import br.com.meubolso.repository.AccountRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -31,11 +33,12 @@ public class AccountService {
         return toResponse(saved);
     }
 
-    public List<AccountResponse> findAllByUser(UUID userId) {
-        return accountRepository.findByUserId(userId)
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    public Page<AccountResponse> findAllByUser(UUID userId, AccountType type, Pageable pageable) {
+        Page<Account> accounts = type == null
+                ? accountRepository.findByUserId(userId, pageable)
+                : accountRepository.findByUserIdAndType(userId, type, pageable);
+
+        return accounts.map(this::toResponse);
     }
 
     public AccountResponse findById(UUID userId, UUID accountId) {

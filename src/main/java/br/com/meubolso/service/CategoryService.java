@@ -1,14 +1,16 @@
 package br.com.meubolso.service;
 
 import br.com.meubolso.domain.Category;
+import br.com.meubolso.domain.enums.CategoryType;
 import br.com.meubolso.dto.CategoryCreateRequest;
 import br.com.meubolso.dto.CategoryResponse;
 import br.com.meubolso.repository.CategoryRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -31,11 +33,12 @@ public class CategoryService {
         return toResponse(saved);
     }
 
-    public List<CategoryResponse> findAllByUser(UUID userId) {
-        return categoryRepository.findByUserId(userId)
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    public Page<CategoryResponse> findAllByUser(UUID userId, CategoryType type, Pageable pageable) {
+        Page<Category> categories = type == null
+                ? categoryRepository.findByUserId(userId, pageable)
+                : categoryRepository.findByUserIdAndType(userId, type, pageable);
+
+        return categories.map(this::toResponse);
     }
 
     public CategoryResponse findById(UUID userId, UUID categoryId) {

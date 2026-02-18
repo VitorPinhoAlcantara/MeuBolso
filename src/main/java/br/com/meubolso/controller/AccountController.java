@@ -1,15 +1,18 @@
 package br.com.meubolso.controller;
 
+import br.com.meubolso.domain.enums.AccountType;
 import br.com.meubolso.dto.AccountCreateRequest;
 import br.com.meubolso.dto.AccountResponse;
 import br.com.meubolso.security.AuthenticatedUser;
 import br.com.meubolso.service.AccountService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -30,8 +33,10 @@ public class AccountController {
     }
 
     @GetMapping
-    public List<AccountResponse> findAll(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return accountService.findAllByUser(currentUser.userId());
+    public Page<AccountResponse> findAll(@AuthenticationPrincipal AuthenticatedUser currentUser,
+                                         @RequestParam(required = false) AccountType type,
+                                         @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+        return accountService.findAllByUser(currentUser.userId(), type, pageable);
     }
 
     @GetMapping("/{id}")

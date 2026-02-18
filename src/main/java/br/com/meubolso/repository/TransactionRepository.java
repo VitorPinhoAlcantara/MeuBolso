@@ -2,12 +2,13 @@ package br.com.meubolso.repository;
 
 import br.com.meubolso.domain.Transaction;
 import br.com.meubolso.domain.enums.TransactionType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
@@ -22,12 +23,13 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             and (:categoryId is null or t.categoryId = :categoryId)
           order by t.transactionDate desc, t.createdAt desc
           """)
-  List<Transaction> findByUserWithFilters(UUID userId,
+  Page<Transaction> findByUserWithFilters(UUID userId,
                                           LocalDate from,
                                           LocalDate to,
                                           TransactionType type,
                                           UUID accountId,
-                                          UUID categoryId);
+                                          UUID categoryId,
+                                          Pageable pageable);
   
   @Query("""
       select coalesce(sum(t.amount), 0)
@@ -53,9 +55,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
           group by t.categoryId, c.name
           order by total desc
           """)
-  List<ExpenseByCategoryProjection> sumExpensesByCategory(UUID userId,
-                                                          LocalDate startDate,
-                                                          LocalDate endDate,
-                                                          TransactionType type);
+  java.util.List<ExpenseByCategoryProjection> sumExpensesByCategory(UUID userId,
+                                                                    LocalDate startDate,
+                                                                    LocalDate endDate,
+                                                                    TransactionType type);
 
 }

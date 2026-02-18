@@ -6,6 +6,10 @@ import br.com.meubolso.dto.TransactionResponse;
 import br.com.meubolso.security.AuthenticatedUser;
 import br.com.meubolso.service.TransactionService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,7 +24,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -41,13 +44,15 @@ public class TransactionController {
     }
 
     @GetMapping
-    public List<TransactionResponse> findAll(@AuthenticationPrincipal AuthenticatedUser currentUser,
+    public Page<TransactionResponse> findAll(@AuthenticationPrincipal AuthenticatedUser currentUser,
                                              @RequestParam(required = false) LocalDate from,
                                              @RequestParam(required = false) LocalDate to,
                                              @RequestParam(required = false) TransactionType type,
                                              @RequestParam(required = false) UUID accountId,
-                                             @RequestParam(required = false) UUID categoryId) {
-        return transactionService.findAllByUser(currentUser.userId(), from, to, type, accountId, categoryId);
+                                             @RequestParam(required = false) UUID categoryId,
+                                             @PageableDefault(size = 20, sort = {"transactionDate", "createdAt"},
+                                                     direction = Sort.Direction.DESC) Pageable pageable) {
+        return transactionService.findAllByUser(currentUser.userId(), from, to, type, accountId, categoryId, pageable);
     }
 
     @GetMapping("/{id}")

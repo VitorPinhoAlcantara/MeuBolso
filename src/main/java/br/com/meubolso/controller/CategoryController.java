@@ -1,10 +1,14 @@
 package br.com.meubolso.controller;
 
+import br.com.meubolso.domain.enums.CategoryType;
 import br.com.meubolso.dto.CategoryCreateRequest;
 import br.com.meubolso.dto.CategoryResponse;
 import br.com.meubolso.security.AuthenticatedUser;
 import br.com.meubolso.service.CategoryService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -14,10 +18,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -38,8 +42,10 @@ public class CategoryController {
     }
 
     @GetMapping
-    public List<CategoryResponse> findAll(@AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return categoryService.findAllByUser(currentUser.userId());
+    public Page<CategoryResponse> findAll(@AuthenticationPrincipal AuthenticatedUser currentUser,
+                                          @RequestParam(required = false) CategoryType type,
+                                          @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+        return categoryService.findAllByUser(currentUser.userId(), type, pageable);
     }
 
     @GetMapping("/{id}")
