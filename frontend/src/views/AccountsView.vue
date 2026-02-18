@@ -2,6 +2,7 @@
 import axios from 'axios'
 import { computed, onMounted, reactive, ref } from 'vue'
 import BaseConfirmModal from '../components/BaseConfirmModal.vue'
+import RowActionButtons from '../components/RowActionButtons.vue'
 import { useToast } from '../composables/useToast'
 import { api } from '../services/api'
 import { accountTypeLabel } from '../utils/enumLabels'
@@ -196,8 +197,12 @@ onMounted(() => {
           <td>{{ item.currency }}</td>
           <td>{{ formatMoney(item.balance) }}</td>
           <td class="actions">
-            <button class="btn btn-secondary" type="button" @click="openEditModal(item)">Editar</button>
-            <button class="btn btn-danger" type="button" @click="askDelete(item)">Excluir</button>
+            <RowActionButtons
+              edit-title="Editar conta"
+              delete-title="Excluir conta"
+              @edit="openEditModal(item)"
+              @delete="askDelete(item)"
+            />
           </td>
         </tr>
       </tbody>
@@ -298,17 +303,6 @@ onMounted(() => {
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-}
-
-.btn-danger {
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  color: var(--danger);
-}
-
-.btn-danger:hover {
-  background: #fecaca;
 }
 
 .pager {

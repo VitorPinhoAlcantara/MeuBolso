@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -34,6 +35,7 @@ public class TransactionService {
         this.categoryRepository = categoryRepository;
     }
 
+    @Transactional
     public TransactionResponse create(UUID userId, TransactionCreateRequest request) {
         Account account = findOwnedAccount(userId, request.getAccountId());
         Category category = findOwnedCategory(userId, request.getCategoryId());
@@ -51,6 +53,7 @@ public class TransactionService {
         transaction.setDescription(request.getDescription());
 
         Transaction saved = transactionRepository.save(transaction);
+        accountRepository.addToBalance(account.getId(), balanceDelta(transactionType, request.getAmount()));
         return toResponse(saved);
     }
 
@@ -70,8 +73,12 @@ public class TransactionService {
         return toResponse(transaction);
     }
 
+    @Transactional
     public TransactionResponse update(UUID userId, UUID transactionId, TransactionCreateRequest request) {
         Transaction transaction = findOwnedTransaction(userId, transactionId);
+        TransactionType oldType = transaction.getType();
+        BigDecimal oldAmount = transaction.getAmount();
+        Account oldAccount = findOwnedAccount(userId, transaction.getAccountId());
         Account account = findOwnedAccount(userId, request.getAccountId());
         Category category = findOwnedCategory(userId, request.getCategoryId());
         TransactionType transactionType = request.getType();
@@ -86,11 +93,19 @@ public class TransactionService {
         transaction.setDescription(request.getDescription());
 
         Transaction saved = transactionRepository.save(transaction);
+
+        // Undo old effect and apply new effect (also handles account changes)
+        accountRepository.addToBalance(oldAccount.getId(), balanceDelta(oldType, oldAmount).negate());
+        accountRepository.addToBalance(account.getId(), balanceDelta(transactionType, request.getAmount()));
+
         return toResponse(saved);
     }
 
+    @Transactional
     public void delete(UUID userId, UUID transactionId) {
         Transaction transaction = findOwnedTransaction(userId, transactionId);
+        Account account = findOwnedAccount(userId, transaction.getAccountId());
+        accountRepository.addToBalance(account.getId(), balanceDelta(transaction.getType(), transaction.getAmount()).negate());
         transactionRepository.delete(transaction);
     }
 
@@ -111,6 +126,10 @@ public class TransactionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Conta e categoria devem pertencer ao mesmo usuário");
         }
+    }
+
+    private BigDecimal balanceDelta(TransactionType type, BigDecimal amount) {
+        return type == TransactionType.INCOME ? amount : amount.negate();
     }
 
     private Transaction findOwnedTransaction(UUID userId, UUID transactionId) {

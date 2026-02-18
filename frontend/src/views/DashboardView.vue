@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { api } from '../services/api'
 
 type ExpenseByCategoryItem = {
@@ -20,6 +20,15 @@ type MonthlyReportResponse = {
 const loading = ref(true)
 const error = ref('')
 const report = ref<MonthlyReportResponse | null>(null)
+
+const netClass = computed(() => {
+  const net = Number(report.value?.net ?? 0)
+
+  if (net < 0) return 'net-critical'
+  if (net <= 50) return 'net-low'
+  if (net <= 200) return 'net-warning'
+  return 'net-good'
+})
 
 const loadReport = async () => {
   loading.value = true
@@ -64,7 +73,7 @@ onMounted(loadReport)
           </div>
           <div class="stat">
             <span>Saldo</span>
-            <strong :class="Number(report.net) >= 0 ? 'ok' : 'danger'">
+            <strong :class="netClass">
               R$ {{ Number(report.net).toFixed(2) }}
             </strong>
           </div>
@@ -131,7 +140,27 @@ onMounted(loadReport)
 }
 
 .danger {
-  color: var(--danger);
+  color: #991b1b;
+}
+
+.net-critical {
+  color: #991b1b;
+  font-weight: 700;
+}
+
+.net-low {
+  color: #e11d48;
+  font-weight: 700;
+}
+
+.net-warning {
+  color: #feaf33;
+  font-weight: 700;
+}
+
+.net-good {
+  color: #15803d;
+  font-weight: 700;
 }
 
 .muted {

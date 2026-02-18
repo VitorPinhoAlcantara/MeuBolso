@@ -2,6 +2,7 @@
 import axios from 'axios'
 import { computed, onMounted, reactive, ref } from 'vue'
 import BaseConfirmModal from '../components/BaseConfirmModal.vue'
+import RowActionButtons from '../components/RowActionButtons.vue'
 import { useToast } from '../composables/useToast'
 import { api } from '../services/api'
 import { transactionTypeLabel } from '../utils/enumLabels'
@@ -133,7 +134,7 @@ const loadTransactions = async (targetPage = 0) => {
       params: {
         page: targetPage,
         size: 10,
-        sort: 'date,desc',
+        sort: 'transactionDate,desc',
         from: filters.from || undefined,
         to: filters.to || undefined,
         type: filters.type || undefined,
@@ -270,11 +271,17 @@ onMounted(async () => {
           <td>{{ transactionTypeLabel[item.type] ?? item.type }}</td>
           <td>{{ accountNameById(item.accountId) }}</td>
           <td>{{ categoryNameById(item.categoryId) }}</td>
-          <td :class="Number(item.amount) >= 0 ? 'ok' : ''">R$ {{ Number(item.amount).toFixed(2) }}</td>
+          <td :class="item.type === 'EXPENSE' ? 'amount-expense' : 'amount-income'">
+            R$ {{ Number(item.amount).toFixed(2) }}
+          </td>
           <td>{{ item.description || '-' }}</td>
           <td class="actions">
-            <button class="btn btn-secondary" type="button" @click="openEditModal(item)">Editar</button>
-            <button class="btn btn-danger" type="button" @click="askDelete(item)">Excluir</button>
+            <RowActionButtons
+              edit-title="Editar transação"
+              delete-title="Excluir transação"
+              @edit="openEditModal(item)"
+              @delete="askDelete(item)"
+            />
           </td>
         </tr>
       </tbody>
@@ -417,17 +424,6 @@ onMounted(async () => {
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-}
-
-.btn-danger {
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  color: var(--danger);
-}
-
-.btn-danger:hover {
-  background: #fecaca;
 }
 
 .pager {
@@ -442,8 +438,13 @@ onMounted(async () => {
   margin-top: 10px;
 }
 
-.ok {
+.amount-income {
   color: #15803d;
+}
+
+.amount-expense {
+  color: #991b1b;
+  font-weight: 700;
 }
 
 .modal-backdrop {

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import axios from 'axios'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { Pencil, Trash2 } from 'lucide-vue-next'
 import { CompactPicker } from 'vue-color'
 import BaseConfirmModal from '../components/BaseConfirmModal.vue'
+import RowActionButtons from '../components/RowActionButtons.vue'
 import { useToast } from '../composables/useToast'
 import { api } from '../services/api'
 
@@ -220,24 +220,12 @@ watch(
                 {{ item.color || 'N/A' }}
               </td>
               <td class="actions">
-                <button
-                  class="icon-btn icon-edit"
-                  type="button"
-                  title="Editar categoria"
-                  aria-label="Editar categoria"
-                  @click="openEditModal(item)"
-                >
-                  <Pencil :size="16" :stroke-width="2.2" />
-                </button>
-                <button
-                  class="icon-btn icon-delete"
-                  type="button"
-                  title="Excluir categoria"
-                  aria-label="Excluir categoria"
-                  @click="askDelete(item)"
-                >
-                  <Trash2 :size="16" :stroke-width="2.2" />
-                </button>
+                <RowActionButtons
+                  edit-title="Editar categoria"
+                  delete-title="Excluir categoria"
+                  @edit="openEditModal(item)"
+                  @delete="askDelete(item)"
+                />
               </td>
             </tr>
           </tbody>
@@ -263,24 +251,12 @@ watch(
                 {{ item.color || 'N/A' }}
               </td>
               <td class="actions">
-                <button
-                  class="icon-btn icon-edit"
-                  type="button"
-                  title="Editar categoria"
-                  aria-label="Editar categoria"
-                  @click="openEditModal(item)"
-                >
-                  <Pencil :size="16" :stroke-width="2.2" />
-                </button>
-                <button
-                  class="icon-btn icon-delete"
-                  type="button"
-                  title="Excluir categoria"
-                  aria-label="Excluir categoria"
-                  @click="askDelete(item)"
-                >
-                  <Trash2 :size="16" :stroke-width="2.2" />
-                </button>
+                <RowActionButtons
+                  edit-title="Editar categoria"
+                  delete-title="Excluir categoria"
+                  @edit="openEditModal(item)"
+                  @delete="askDelete(item)"
+                />
               </td>
             </tr>
           </tbody>
@@ -411,34 +387,6 @@ watch(
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-}
-
-.icon-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: #f8fafc;
-  cursor: pointer;
-  display: inline-grid;
-  place-items: center;
-  font-size: 16px;
-  color: #0f172a;
-}
-
-.icon-edit:hover {
-  background: #e2e8f0;
-}
-
-.icon-delete {
-  background: #fee2e2;
-  border-color: #fecaca;
-  color: var(--danger);
-}
-
-.icon-delete:hover {
-  background: #fecaca;
 }
 
 .muted {
