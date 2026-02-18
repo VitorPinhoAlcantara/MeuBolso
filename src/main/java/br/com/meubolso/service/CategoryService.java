@@ -5,6 +5,7 @@ import br.com.meubolso.domain.enums.CategoryType;
 import br.com.meubolso.dto.CategoryCreateRequest;
 import br.com.meubolso.dto.CategoryResponse;
 import br.com.meubolso.repository.CategoryRepository;
+import br.com.meubolso.repository.TransactionRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -17,9 +18,12 @@ import java.util.UUID;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final TransactionRepository transactionRepository;
 
-    public CategoryService(CategoryRepository categoryRepository) {
+    public CategoryService(CategoryRepository categoryRepository,
+                           TransactionRepository transactionRepository) {
         this.categoryRepository = categoryRepository;
+        this.transactionRepository = transactionRepository;
     }
 
     public CategoryResponse create(UUID userId, CategoryCreateRequest request) {
@@ -59,6 +63,11 @@ public class CategoryService {
 
     public void delete(UUID userId, UUID categoryId) {
         Category category = findOwnedCategory(userId, categoryId);
+
+        if (transactionRepository.existsByUserIdAndCategoryId(userId, categoryId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Não é possível excluir categoria com transações vinculadas");
+        }
+
         categoryRepository.delete(category);
     }
 

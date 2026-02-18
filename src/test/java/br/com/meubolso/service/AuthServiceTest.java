@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -75,6 +76,29 @@ class AuthServiceTest {
         assertEquals("Bearer", response.getTokenType());
 
         verify(refreshTokenRepository).findByToken("old-refresh");
+        verify(refreshTokenRepository).save(eq(stored));
+    }
+
+    @Test
+    void shouldRevokeRefreshTokenOnLogout() {
+        UUID userId = UUID.randomUUID();
+
+        RefreshToken stored = new RefreshToken();
+        stored.setToken("refresh-token");
+        stored.setUserId(userId);
+        stored.setExpiresAt(OffsetDateTime.now().plusDays(5));
+
+        AuthRefreshRequest request = new AuthRefreshRequest();
+        request.setRefreshToken("refresh-token");
+
+        when(jwtService.parseRefreshToken("refresh-token"))
+                .thenReturn(new AuthenticatedUser(userId, "user@test.com"));
+        when(refreshTokenRepository.findByToken("refresh-token")).thenReturn(Optional.of(stored));
+
+        authService.logout(request);
+
+        assertNotNull(stored.getRevokedAt());
+        verify(refreshTokenRepository).findByToken("refresh-token");
         verify(refreshTokenRepository).save(eq(stored));
     }
 }

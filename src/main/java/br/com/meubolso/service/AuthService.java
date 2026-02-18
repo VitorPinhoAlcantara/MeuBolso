@@ -87,6 +87,22 @@ public class AuthService {
         }
     }
 
+    public void logout(AuthRefreshRequest request) {
+        try {
+            jwtService.parseRefreshToken(request.getRefreshToken());
+        } catch (JwtException | IllegalArgumentException ex) {
+            return;
+        }
+
+        refreshTokenRepository.findByToken(request.getRefreshToken())
+                .ifPresent(storedToken -> {
+                    if (storedToken.getRevokedAt() == null) {
+                        storedToken.setRevokedAt(OffsetDateTime.now());
+                        refreshTokenRepository.save(storedToken);
+                    }
+                });
+    }
+
     private AuthTokenResponse issueTokens(User user) {
         String accessToken = jwtService.generateAccessToken(user);
         String refreshTokenValue = jwtService.generateRefreshToken(user);

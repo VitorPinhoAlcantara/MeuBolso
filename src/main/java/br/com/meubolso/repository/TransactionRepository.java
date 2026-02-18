@@ -13,6 +13,10 @@ import java.util.UUID;
 
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
 
+  boolean existsByUserIdAndAccountId(UUID userId, UUID accountId);
+
+  boolean existsByUserIdAndCategoryId(UUID userId, UUID categoryId);
+
   @Query("""
           select t from Transaction t
           where t.userId = :userId

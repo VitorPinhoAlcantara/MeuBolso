@@ -5,6 +5,7 @@ import br.com.meubolso.domain.enums.AccountType;
 import br.com.meubolso.dto.AccountCreateRequest;
 import br.com.meubolso.dto.AccountResponse;
 import br.com.meubolso.repository.AccountRepository;
+import br.com.meubolso.repository.TransactionRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -17,9 +18,12 @@ import java.util.UUID;
 public class AccountService {
 
     private final AccountRepository accountRepository;
+    private final TransactionRepository transactionRepository;
 
-    public AccountService(AccountRepository accountRepository) {
+    public AccountService(AccountRepository accountRepository,
+                          TransactionRepository transactionRepository) {
         this.accountRepository = accountRepository;
+        this.transactionRepository = transactionRepository;
     }
 
     public AccountResponse create(UUID userId, AccountCreateRequest request) {
@@ -74,6 +78,10 @@ public class AccountService {
 
         if (!account.getUserId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso negado");
+        }
+
+        if (transactionRepository.existsByUserIdAndAccountId(userId, accountId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Não é possível excluir conta com transações vinculadas");
         }
 
         accountRepository.delete(account);

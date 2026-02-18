@@ -42,4 +42,11 @@ public class AuthController {
     public AuthTokenResponse refresh(@Valid @RequestBody AuthRefreshRequest request) {
         return authService.refresh(request);
     }
+
+    @PostMapping("/logout")
+    @Operation(security = {})
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(@Valid @RequestBody AuthRefreshRequest request) {
+        authService.logout(request);
+    }
 }
