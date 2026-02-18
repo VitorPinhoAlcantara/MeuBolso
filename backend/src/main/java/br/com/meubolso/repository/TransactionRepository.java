@@ -49,6 +49,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
           select
               t.categoryId as categoryId,
               c.name as categoryName,
+              c.color as categoryColor,
               coalesce(sum(t.amount), 0) as total
           from Transaction t
           join Category c on c.id = t.categoryId
@@ -56,7 +57,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             and t.type = :type
             and t.transactionDate >= :startDate
             and t.transactionDate <= :endDate
-          group by t.categoryId, c.name
+          group by t.categoryId, c.name, c.color
           order by total desc
           """)
   java.util.List<ExpenseByCategoryProjection> sumExpensesByCategory(UUID userId,

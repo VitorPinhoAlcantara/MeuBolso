@@ -50,6 +50,11 @@ class ReportServiceTest {
                     }
 
                     @Override
+                    public String getCategoryColor() {
+                        return "#16A34A";
+                    }
+
+                    @Override
                     public BigDecimal getTotal() {
                         return new BigDecimal("1200.00");
                     }

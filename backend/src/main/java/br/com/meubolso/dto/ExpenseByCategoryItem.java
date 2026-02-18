@@ -7,6 +7,7 @@ public class ExpenseByCategoryItem {
 
     private UUID categoryId;
     private String categoryName;
+    private String categoryColor;
     private BigDecimal total;
 
     public UUID getCategoryId() {
@@ -23,6 +24,14 @@ public class ExpenseByCategoryItem {
 
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
+    }
+
+    public String getCategoryColor() {
+        return categoryColor;
+    }
+
+    public void setCategoryColor(String categoryColor) {
+        this.categoryColor = categoryColor;
     }
 
     public BigDecimal getTotal() {

@@ -5,6 +5,7 @@ import { api } from '../services/api'
 type ExpenseByCategoryItem = {
   categoryId: string
   categoryName: string
+  categoryColor?: string
   total: number
 }
 
@@ -63,15 +64,15 @@ onMounted(loadReport)
 
       <template v-else-if="report">
         <div class="stats">
-          <div class="stat">
+          <div class="stat stat-income">
             <span>Receitas</span>
             <strong class="ok">R$ {{ Number(report.totalIncome).toFixed(2) }}</strong>
           </div>
-          <div class="stat">
+          <div class="stat stat-expense">
             <span>Despesas</span>
             <strong class="danger">R$ {{ Number(report.totalExpense).toFixed(2) }}</strong>
           </div>
-          <div class="stat">
+          <div class="stat stat-balance">
             <span>Saldo</span>
             <strong :class="netClass">
               R$ {{ Number(report.net).toFixed(2) }}
@@ -129,6 +130,24 @@ onMounted(loadReport)
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 10px;
+}
+
+.stat-income {
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.18), rgba(22, 163, 74, 0.08));
+  border-color: rgba(22, 163, 74, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.stat-expense {
+  background: linear-gradient(135deg, rgba(153, 27, 27, 0.2), rgba(225, 29, 72, 0.1));
+  border-color: rgba(153, 27, 27, 0.38);
+  backdrop-filter: blur(8px);
+}
+
+.stat-balance {
+  background: linear-gradient(135deg, rgba(71, 85, 105, 0.12), rgba(100, 116, 139, 0.06));
+  border-color: rgba(100, 116, 139, 0.35);
+  backdrop-filter: blur(8px);
 }
 
 .stat span {

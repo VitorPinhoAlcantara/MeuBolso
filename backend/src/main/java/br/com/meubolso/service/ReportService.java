@@ -43,6 +43,7 @@ public class ReportService {
                     ExpenseByCategoryItem item = new ExpenseByCategoryItem();
                     item.setCategoryId(p.getCategoryId());
                     item.setCategoryName(p.getCategoryName());
+                    item.setCategoryColor(p.getCategoryColor());
                     item.setTotal(p.getTotal());
                     return item;
                 })
