@@ -72,9 +72,11 @@ public class TransactionService {
                                                    TransactionType type,
                                                    UUID accountId,
                                                    UUID categoryId,
+                                                   String query,
                                                    Pageable pageable) {
+        String sanitizedQuery = query == null ? "" : query.trim().toLowerCase();
         Page<Transaction> page = transactionRepository.findByUserWithFilters(
-                userId, from, to, type, accountId, categoryId, pageable);
+                userId, from, to, type, accountId, categoryId, sanitizedQuery, pageable);
 
         Map<UUID, Long> attachmentsCountByTransactionId = page.getContent().isEmpty()
                 ? Map.of()

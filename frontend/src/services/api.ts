@@ -9,6 +9,46 @@ export const api = axios.create({
   },
 })
 
+let refreshPromise: Promise<string> | null = null
+
+const clearAuthAndRedirect = () => {
+  localStorage.removeItem('accessToken')
+  localStorage.removeItem('refreshToken')
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login'
+  }
+}
+
+const refreshAccessToken = async () => {
+  if (refreshPromise) return refreshPromise
+
+  const refreshToken = localStorage.getItem('refreshToken')
+  if (!refreshToken) {
+    clearAuthAndRedirect()
+    throw new Error('Refresh token ausente')
+  }
+
+  const refreshUrl =
+    API_BASE_URL.endsWith('/') ? `${API_BASE_URL}api/v1/auth/refresh` : `${API_BASE_URL}/api/v1/auth/refresh`
+
+  refreshPromise = axios
+    .post(refreshUrl, { refreshToken })
+    .then((response) => {
+      const newAccessToken = response.data.accessToken as string
+      const newRefreshToken = response.data.refreshToken as string
+
+      localStorage.setItem('accessToken', newAccessToken)
+      localStorage.setItem('refreshToken', newRefreshToken)
+
+      return newAccessToken
+    })
+    .finally(() => {
+      refreshPromise = null
+    })
+
+  return refreshPromise
+}
+
 api.interceptors.request.use((config) => {
   if (config.data instanceof FormData && config.headers) {
     delete config.headers['Content-Type']
@@ -35,41 +75,16 @@ api.interceptors.response.use(
 
     if (status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true
-      const refreshToken = localStorage.getItem('refreshToken')
-
-      if (!refreshToken) {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login'
-        }
-        return Promise.reject(error)
-      }
 
       try {
-        const refreshUrl =
-          API_BASE_URL.endsWith('/') ? `${API_BASE_URL}api/v1/auth/refresh` : `${API_BASE_URL}/api/v1/auth/refresh`
-
-        const refreshResponse = await axios.post(refreshUrl, {
-          refreshToken,
-        })
-
-        const newAccessToken = refreshResponse.data.accessToken as string
-        const newRefreshToken = refreshResponse.data.refreshToken as string
-
-        localStorage.setItem('accessToken', newAccessToken)
-        localStorage.setItem('refreshToken', newRefreshToken)
+        const newAccessToken = await refreshAccessToken()
 
         originalRequest.headers = originalRequest.headers ?? {}
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
 
         return api(originalRequest)
-      } catch (refreshError) {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login'
-        }
+      } catch (refreshError: unknown) {
+        clearAuthAndRedirect()
         return Promise.reject(refreshError)
       }
     }

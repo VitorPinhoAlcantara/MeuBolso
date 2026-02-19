@@ -22,12 +22,20 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
 
   @Query("""
           select t from Transaction t
+          join Account a on a.id = t.accountId
+          join Category c on c.id = t.categoryId
           where t.userId = :userId
             and (:from is null or t.transactionDate >= :from)
             and (:to is null or t.transactionDate <= :to)
             and (:type is null or t.type = :type)
             and (:accountId is null or t.accountId = :accountId)
             and (:categoryId is null or t.categoryId = :categoryId)
+            and (
+              :query = ''
+              or lower(coalesce(t.description, '')) like concat('%', :query, '%')
+              or lower(a.name) like concat('%', :query, '%')
+              or lower(c.name) like concat('%', :query, '%')
+            )
           order by t.transactionDate desc, t.createdAt desc
           """)
   Page<Transaction> findByUserWithFilters(UUID userId,
@@ -36,6 +44,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
                                           TransactionType type,
                                           UUID accountId,
                                           UUID categoryId,
+                                          String query,
                                           Pageable pageable);
   
   @Query("""

@@ -87,6 +87,7 @@ const filters = reactive({
   type: '' as '' | TransactionType,
   accountId: '',
   categoryId: '',
+  query: '',
   datePreset: 'ALL' as DatePreset,
 })
 
@@ -330,6 +331,7 @@ const loadTransactions = async (targetPage = 0) => {
         type: filters.type || undefined,
         accountId: filters.accountId || undefined,
         categoryId: filters.categoryId || undefined,
+        q: filters.query.trim() || undefined,
       },
     })
 
@@ -471,6 +473,7 @@ onMounted(async () => {
     </header>
 
     <div class="filters">
+      <input v-model.trim="filters.query" type="text" placeholder="Buscar por descrição, conta ou categoria" />
       <select v-model="filters.accountId">
         <option value="">Conta (todas)</option>
         <option v-for="account in accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
@@ -787,7 +790,7 @@ onMounted(async () => {
 .filters {
   margin-top: 12px;
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 8px;
 }
 
