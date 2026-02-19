@@ -10,7 +10,11 @@ import br.com.meubolso.domain.enums.CategoryType;
 import br.com.meubolso.domain.enums.PaymentMethodType;
 import br.com.meubolso.repository.AccountRepository;
 import br.com.meubolso.dto.AuthLoginRequest;
+import br.com.meubolso.dto.AuthEmailUpdateRequest;
+import br.com.meubolso.dto.AuthDeleteAccountRequest;
 import br.com.meubolso.dto.AuthMeResponse;
+import br.com.meubolso.dto.AuthPasswordUpdateRequest;
+import br.com.meubolso.dto.AuthProfileUpdateRequest;
 import br.com.meubolso.dto.AuthRefreshRequest;
 import br.com.meubolso.dto.AuthRegisterRequest;
 import br.com.meubolso.dto.AuthTokenResponse;
@@ -30,6 +34,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -132,11 +137,83 @@ public class AuthService {
         User user = userRepository.findById(currentUser.userId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
 
+        return toMeResponse(user);
+    }
+
+    @Transactional
+    public AuthMeResponse updateProfile(UUID userId, AuthProfileUpdateRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
+
+        user.setFirstName(normalizeNullable(request.getFirstName()));
+        user.setLastName(normalizeNullable(request.getLastName()));
+
+        return toMeResponse(userRepository.save(user));
+    }
+
+    @Transactional
+    public AuthMeResponse updateEmail(UUID userId, AuthEmailUpdateRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Senha atual inválida");
+        }
+
+        String normalizedEmail = request.getNewEmail().trim().toLowerCase();
+        if (userRepository.existsByEmailAndIdNot(normalizedEmail, userId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email já cadastrado");
+        }
+
+        user.setEmail(normalizedEmail);
+        return toMeResponse(userRepository.save(user));
+    }
+
+    @Transactional
+    public void updatePassword(UUID userId, AuthPasswordUpdateRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Senha atual inválida");
+        }
+        if (request.getCurrentPassword().equals(request.getNewPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A nova senha deve ser diferente da atual");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void deleteAccount(UUID userId, AuthDeleteAccountRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Senha atual inválida");
+        }
+
+        userRepository.delete(user);
+    }
+
+    private AuthMeResponse toMeResponse(User user) {
         AuthMeResponse response = new AuthMeResponse();
         response.setId(user.getId());
         response.setEmail(user.getEmail());
+        response.setFirstName(user.getFirstName());
+        response.setLastName(user.getLastName());
         response.setCreatedAt(user.getCreatedAt());
+        response.setUpdatedAt(user.getUpdatedAt());
         return response;
+    }
+
+    private String normalizeNullable(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private AuthTokenResponse issueTokens(User user) {

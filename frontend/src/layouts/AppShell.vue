@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseConfirmModal from '../components/BaseConfirmModal.vue'
 import { api } from '../services/api'
@@ -13,6 +13,7 @@ const showLogoutModal = ref(false)
 const logoutLoading = ref(false)
 const showUserMenu = ref(false)
 const userEmail = ref('')
+const userName = ref('')
 
 const navItems = [
   { label: 'Dashboard', to: '/dashboard' },
@@ -51,14 +52,29 @@ const openProfile = async () => {
 
 const loadMe = async () => {
   try {
-    const response = await api.get<{ email: string }>('/api/v1/auth/me')
+    const response = await api.get<{ email: string; firstName?: string | null; lastName?: string | null }>('/api/v1/auth/me')
     userEmail.value = response.data.email
+    const first = (response.data.firstName ?? '').trim()
+    const last = (response.data.lastName ?? '').trim()
+    userName.value = `${first} ${last}`.trim()
   } catch {
     userEmail.value = ''
+    userName.value = ''
   }
 }
 
-onMounted(loadMe)
+const handleMeUpdated = () => {
+  loadMe()
+}
+
+onMounted(() => {
+  loadMe()
+  window.addEventListener('auth-me-updated', handleMeUpdated)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('auth-me-updated', handleMeUpdated)
+})
 </script>
 
 <template>
@@ -121,7 +137,7 @@ onMounted(loadMe)
         <span class="profile-title">Perfil</span>
         <button type="button" class="user-trigger" @click="showUserMenu = !showUserMenu">
           <img src="/brand/badge.svg" alt="Avatar MeuBolso" class="avatar" />
-          <span class="user-email">{{ userEmail || 'Usuário' }}</span>
+          <span class="user-email">{{ userName || userEmail || 'Usuário' }}</span>
           <span class="caret">▾</span>
         </button>
 

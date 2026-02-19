@@ -7,7 +7,10 @@ public class AuthMeResponse {
 
     private UUID id;
     private String email;
+    private String firstName;
+    private String lastName;
     private OffsetDateTime createdAt;
+    private OffsetDateTime updatedAt;
 
     public UUID getId() {
         return id;
@@ -25,11 +28,35 @@ public class AuthMeResponse {
         this.email = email;
     }
 
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
 
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public OffsetDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(OffsetDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }
