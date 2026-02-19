@@ -5,7 +5,7 @@ MeuBolso e uma aplicacao de controle financeiro pessoal em formato monorepo, com
 - frontend em Vue 3 (painel web para uso diario)
 
 ## Versao
-- Projeto: `1.0`
+- Projeto: `2.0`
 - Backend: `backend/pom.xml`
 - Frontend: `frontend/package.json`
 

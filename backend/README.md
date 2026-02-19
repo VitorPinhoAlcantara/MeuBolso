@@ -3,7 +3,7 @@
 API REST do MeuBolso.
 
 ## Versao
-- Backend: `1.0` (definida em `pom.xml`)
+- Backend: `2.0` (definida em `pom.xml`)
 
 ## Responsabilidade
 O backend concentra:
