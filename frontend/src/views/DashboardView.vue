@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { api } from '../services/api'
 import { accountTypeLabel } from '../utils/enumLabels'
 
@@ -43,8 +44,31 @@ const loading = ref(true)
 const error = ref('')
 const report = ref<MonthlyReportResponse | null>(null)
 const balances = ref<AccountBalanceItem[]>([])
+const showMonthModal = ref(false)
+
+const now = new Date()
+const selectedYear = ref(now.getFullYear())
+const selectedMonth = ref(now.getMonth() + 1)
+const modalYear = ref(selectedYear.value)
+const modalMonth = ref(selectedMonth.value)
+
+const monthOptions = [
+  { value: 1, label: 'Janeiro' },
+  { value: 2, label: 'Fevereiro' },
+  { value: 3, label: 'Março' },
+  { value: 4, label: 'Abril' },
+  { value: 5, label: 'Maio' },
+  { value: 6, label: 'Junho' },
+  { value: 7, label: 'Julho' },
+  { value: 8, label: 'Agosto' },
+  { value: 9, label: 'Setembro' },
+  { value: 10, label: 'Outubro' },
+  { value: 11, label: 'Novembro' },
+  { value: 12, label: 'Dezembro' },
+]
 
 const fallbackCategoryColors = ['#2563EB', '#16A34A', '#F97316', '#8B5CF6', '#06B6D4', '#E11D48', '#F59E0B']
+const fallbackAccountColors = ['#2563EB', '#16A34A', '#F97316', '#8B5CF6', '#0EA5E9', '#F59E0B', '#E11D48', '#14B8A6']
 
 const formatMoney = (value: number) =>
   `R$ ${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
@@ -73,26 +97,47 @@ const sortedBalances = computed(() =>
   [...balances.value].sort((a, b) => Number(b.balance ?? 0) - Number(a.balance ?? 0)),
 )
 
-const reportPeriodLabel = computed(() => {
-  if (!report.value) return ''
-  const year = report.value.year
-  const month = report.value.month
-  const start = new Date(year, month - 1, 1)
-  const end = new Date(year, month, 0)
-  const formatDate = (date: Date) =>
-    new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
-  return `Período: ${formatDate(start)} até ${formatDate(end)}`
+const monthLabel = computed(() => {
+  const label = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(
+    new Date(selectedYear.value, selectedMonth.value - 1, 1),
+  )
+  return label.charAt(0).toUpperCase() + label.slice(1)
 })
 
-const maxExpenseByAccount = computed(() =>
-  Math.max(0, ...(report.value?.expensesByAccount?.map((item) => Number(item.total)) ?? [0])),
-)
+const expenseByAccountLegend = computed(() => {
+  const items = report.value?.expensesByAccount ?? []
+  const total = items.reduce((acc, item) => acc + Number(item.total), 0)
 
-const accountExpenseWidth = (value: number) => {
-  const max = maxExpenseByAccount.value
-  if (max <= 0) return 0
-  return Math.max(8, Math.round((Number(value) / max) * 100))
-}
+  return items.map((item, index) => {
+    const value = Number(item.total)
+    const percent = total > 0 ? (value / total) * 100 : 0
+    return {
+      ...item,
+      value,
+      percent,
+      color: fallbackAccountColors[index % fallbackAccountColors.length],
+    }
+  })
+})
+
+const expenseByAccountBarStyle = computed(() => {
+  const segments = expenseByAccountLegend.value
+  if (!segments.length) {
+    return { background: '#e2e8f0' }
+  }
+
+  let start = 0
+  const gradientParts = segments.map((segment) => {
+    const end = start + segment.percent
+    const part = `${segment.color} ${start.toFixed(2)}% ${end.toFixed(2)}%`
+    start = end
+    return part
+  })
+
+  return {
+    background: `linear-gradient(90deg, ${gradientParts.join(', ')})`,
+  }
+})
 
 const categoryLegend = computed(() => {
   const items = report.value?.expensesByCategory ?? []
@@ -127,13 +172,11 @@ const loadDashboard = async () => {
   error.value = ''
 
   try {
-    const now = new Date()
-
     const [reportResponse, accountsResponse] = await Promise.all([
       api.get<MonthlyReportResponse>('/api/v1/reports/monthly', {
         params: {
-          year: now.getFullYear(),
-          month: now.getMonth() + 1,
+          year: selectedYear.value,
+          month: selectedMonth.value,
         },
       }),
       api.get<PageResponse<AccountBalanceItem>>('/api/v1/accounts', {
@@ -152,6 +195,39 @@ const loadDashboard = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const prevMonth = async () => {
+  if (selectedMonth.value === 1) {
+    selectedMonth.value = 12
+    selectedYear.value -= 1
+  } else {
+    selectedMonth.value -= 1
+  }
+  await loadDashboard()
+}
+
+const nextMonth = async () => {
+  if (selectedMonth.value === 12) {
+    selectedMonth.value = 1
+    selectedYear.value += 1
+  } else {
+    selectedMonth.value += 1
+  }
+  await loadDashboard()
+}
+
+const openMonthModal = () => {
+  modalYear.value = selectedYear.value
+  modalMonth.value = selectedMonth.value
+  showMonthModal.value = true
+}
+
+const applyMonthSelection = async () => {
+  selectedYear.value = modalYear.value
+  selectedMonth.value = modalMonth.value
+  showMonthModal.value = false
+  await loadDashboard()
 }
 
 onMounted(loadDashboard)
@@ -180,8 +256,23 @@ onMounted(loadDashboard)
       </article>
 
       <article class="panel">
-        <h3>Resumo do mês</h3>
-        <p v-if="reportPeriodLabel" class="period-hint">{{ reportPeriodLabel }}</p>
+        <header class="panel-header">
+          <div>
+            <h3>Resumo do mês</h3>
+            <p class="month-hint">{{ monthLabel }}</p>
+          </div>
+          <div class="month-controls">
+            <button type="button" class="icon-btn" title="Mês anterior" @click="prevMonth">
+              <ChevronLeft :size="18" />
+            </button>
+            <button type="button" class="icon-btn" title="Próximo mês" @click="nextMonth">
+              <ChevronRight :size="18" />
+            </button>
+            <button type="button" class="icon-btn" title="Selecionar mês" @click="openMonthModal">
+              <CalendarDays :size="18" />
+            </button>
+          </div>
+        </header>
 
         <p v-if="loading" class="muted">Carregando...</p>
         <p v-else-if="error" class="error">{{ error }}</p>
@@ -207,29 +298,36 @@ onMounted(loadDashboard)
 
     <article class="panel">
       <h3>Relatório mensal de despesas por conta</h3>
-      <p v-if="reportPeriodLabel" class="period-hint">{{ reportPeriodLabel }}</p>
+      <p class="month-hint">{{ monthLabel }}</p>
 
       <p v-if="loading" class="muted">Carregando...</p>
       <p v-else-if="error" class="error">{{ error }}</p>
 
-      <ul v-else-if="report?.expensesByAccount?.length" class="account-expense-list">
-        <li v-for="item in report.expensesByAccount" :key="item.accountId">
-          <div class="account-expense-info">
-            <span>{{ item.accountName }}</span>
-            <strong>{{ formatMoney(item.total) }}</strong>
-          </div>
-          <div class="progress-track">
-            <div class="progress-fill" :style="{ width: `${accountExpenseWidth(item.total)}%` }"></div>
-          </div>
-        </li>
-      </ul>
+      <template v-else-if="expenseByAccountLegend.length">
+        <div class="stacked-bar-track">
+          <div class="stacked-bar-fill" :style="expenseByAccountBarStyle"></div>
+        </div>
+
+        <ul class="account-expense-list">
+          <li v-for="item in expenseByAccountLegend" :key="item.accountId">
+            <span class="account-expense-name">
+              <i class="dot" :style="{ backgroundColor: item.color }"></i>
+              {{ item.accountName }}
+            </span>
+            <div class="account-expense-meta">
+              <small>{{ item.percent.toFixed(1) }}%</small>
+              <strong>{{ formatMoney(item.value) }}</strong>
+            </div>
+          </li>
+        </ul>
+      </template>
 
       <p v-else class="muted">Nenhuma despesa por conta no mês.</p>
     </article>
 
     <article class="panel">
       <h3>Gastos por categoria</h3>
-      <p v-if="reportPeriodLabel" class="period-hint">{{ reportPeriodLabel }}</p>
+      <p class="month-hint">{{ monthLabel }}</p>
 
       <p v-if="loading" class="muted">Carregando...</p>
       <p v-else-if="error" class="error">{{ error }}</p>
@@ -257,6 +355,32 @@ onMounted(loadDashboard)
       </div>
     </article>
   </section>
+
+  <Teleport to="body">
+    <div v-if="showMonthModal" class="modal-backdrop" @click.self="showMonthModal = false">
+      <section class="modal-card">
+        <h3>Selecionar mês</h3>
+        <div class="modal-fields">
+          <label class="field">
+            <span>Mês</span>
+            <select v-model.number="modalMonth">
+              <option v-for="option in monthOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Ano</span>
+            <input v-model.number="modalYear" type="number" min="2000" max="2100" />
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" @click="showMonthModal = false">Cancelar</button>
+          <button type="button" class="btn btn-primary" @click="applyMonthSelection">Aplicar</button>
+        </div>
+      </section>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -286,10 +410,40 @@ onMounted(loadDashboard)
   margin: 0;
 }
 
-.period-hint {
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.month-hint {
   margin: 8px 0 0;
   color: var(--muted);
   font-size: 13px;
+}
+
+.month-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: #f8fafc;
 }
 
 .stats {
@@ -386,26 +540,41 @@ onMounted(loadDashboard)
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 12px;
-}
-
-.account-expense-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
 }
 
-.progress-track {
-  height: 8px;
+.account-expense-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.account-expense-meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.account-expense-meta small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.stacked-bar-track {
+  margin-top: 14px;
+  margin-bottom: 12px;
+  height: 16px;
   border-radius: 999px;
+  border: 1px solid var(--border);
   background: #e2e8f0;
   overflow: hidden;
 }
 
-.progress-fill {
+.stacked-bar-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #2563eb, #60a5fa);
 }
 
 .category-section {
@@ -476,6 +645,61 @@ onMounted(loadDashboard)
 .error {
   color: var(--danger);
   margin-top: 12px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: grid;
+  place-items: center;
+  z-index: 60;
+  padding: 16px;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 380px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 18px;
+}
+
+.modal-card h3 {
+  margin: 0;
+}
+
+.modal-fields {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field span {
+  font-size: 13px;
+  color: #334155;
+}
+
+.field input,
+.field select {
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0 10px;
+}
+
+.modal-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 @media (max-width: 1200px) {
