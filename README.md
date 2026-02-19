@@ -5,7 +5,7 @@ MeuBolso e uma aplicacao de controle financeiro pessoal em formato monorepo, com
 - frontend em Vue 3 (painel web para uso diario)
 
 ## Versao
-- Projeto: `2.0`
+- Projeto: `0.3`
 - Backend: `backend/pom.xml`
 - Frontend: `frontend/package.json`
 
@@ -56,7 +56,7 @@ npm run dev
 - API: `http://localhost:4444`
 - Swagger: `http://localhost:4444/swagger-ui/index.html`
 
-## Release 1.0 com Docker (stack completa)
+## Release 0.3 com Docker (stack completa)
 Para subir tudo em um unico comando (frontend + backend + PostgreSQL + MinIO):
 
 1. (Opcional, recomendado) crie `.env` na raiz:

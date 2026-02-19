@@ -3,7 +3,7 @@
 Aplicacao web do MeuBolso.
 
 ## Versao
-- Frontend: `2.0` (definida em `package.json`)
+- Frontend: `0.3` (definida em `package.json`)
 
 ## Responsabilidade
 O frontend entrega:
