@@ -697,24 +697,21 @@ onMounted(async () => {
                 </option>
               </select>
             </label>
-            <div></div>
-          </div>
-
-          <div class="form-row">
-            <label class="field">
-              <span>Valor</span>
-              <input v-model="form.amount" type="number" min="0.01" step="0.01" required />
-            </label>
 
             <label class="field">
-              <span>Descrição</span>
-              <input v-model.trim="form.description" type="text" maxlength="255" />
+              <span>Data</span>
+              <input v-model="form.date" type="date" required />
             </label>
           </div>
 
           <label class="field">
-            <span>Data</span>
-            <input v-model="form.date" type="date" required />
+            <span>Valor</span>
+            <input v-model="form.amount" type="number" min="0.01" step="0.01" required />
+          </label>
+
+          <label class="field">
+            <span>Descrição <small class="field-help">(opcional)</small></span>
+            <textarea v-model.trim="form.description" maxlength="255" rows="2" />
           </label>
 
           <label class="field">
@@ -1077,7 +1074,8 @@ onMounted(async () => {
 }
 
 .field input,
-.field select {
+.field select,
+.field textarea {
   height: 40px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -1086,9 +1084,21 @@ onMounted(async () => {
 }
 
 .field input:focus,
-.field select:focus {
+.field select:focus,
+.field textarea:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.field textarea {
+  min-height: 72px;
+  resize: vertical;
+  padding: 10px;
+}
+
+.field-help {
+  font-weight: 400;
+  color: var(--muted);
 }
 
 .form-row {

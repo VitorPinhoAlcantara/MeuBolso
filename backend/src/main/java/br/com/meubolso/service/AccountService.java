@@ -135,7 +135,7 @@ public class AccountService {
         response.setBillingClosingDay(method.getBillingClosingDay());
         response.setBillingDueDay(method.getBillingDueDay());
         response.setCreditLimit(method.getCreditLimit());
-        response.setDefault(method.isDefault());
+        response.setIsDefault(method.isDefault());
         response.setCreatedAt(method.getCreatedAt());
         response.setUpdatedAt(method.getUpdatedAt());
         return response;

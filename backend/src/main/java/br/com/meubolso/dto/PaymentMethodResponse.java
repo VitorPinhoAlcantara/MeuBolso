@@ -84,11 +84,11 @@ public class PaymentMethodResponse {
         this.creditLimit = creditLimit;
     }
 
-    public boolean isDefault() {
+    public boolean getIsDefault() {
         return isDefault;
     }
 
-    public void setDefault(boolean aDefault) {
+    public void setIsDefault(boolean aDefault) {
         isDefault = aDefault;
     }
 
