@@ -16,9 +16,9 @@ const userEmail = ref('')
 
 const navItems = [
   { label: 'Dashboard', to: '/dashboard' },
+  { label: 'Transações', to: '/transactions' },
   { label: 'Contas', to: '/accounts' },
   { label: 'Categorias', to: '/categories' },
-  { label: 'Transações', to: '/transactions' },
 ]
 
 const pageTitle = computed(() => {
@@ -68,19 +68,49 @@ onMounted(loadMe)
         <p>Controle financeiro</p>
       </div>
 
-      <nav class="nav">
+      <nav class="nav nav-section nav-main">
+        <span class="nav-title">Início</span>
         <RouterLink
-          v-for="item in navItems"
-          :key="item.to"
-          :to="item.to"
-          class="nav-link"
-          :class="{ active: route.path === item.to }"
+          :to="navItems[0].to"
+          class="nav-link nav-link-dashboard"
+          :class="{ active: route.path === navItems[0].to }"
         >
-          {{ item.label }}
+          {{ navItems[0].label }}
+        </RouterLink>
+      </nav>
+
+      <nav class="nav nav-section">
+        <span class="nav-title">Movimentação</span>
+        <RouterLink
+          :to="navItems[1].to"
+          class="nav-link"
+          :class="{ active: route.path === navItems[1].to }"
+        >
+          {{ navItems[1].label }}
+        </RouterLink>
+        <RouterLink
+          :to="navItems[2].to"
+          class="nav-link"
+          :class="{ active: route.path === navItems[2].to }"
+        >
+          {{ navItems[2].label }}
+        </RouterLink>
+      </nav>
+
+      <nav class="nav nav-section nav-section-last">
+        <span class="nav-title">Organização</span>
+        <RouterLink
+          :to="navItems[3].to"
+          class="nav-link"
+          :class="{ active: route.path === navItems[3].to }"
+        >
+          {{ navItems[3].label }}
         </RouterLink>
       </nav>
 
       <div class="user-menu-wrapper">
+        <div class="profile-divider"></div>
+        <span class="profile-title">Perfil</span>
         <button type="button" class="user-trigger" @click="showUserMenu = !showUserMenu">
           <span class="avatar">{{ (userEmail || 'U').charAt(0).toUpperCase() }}</span>
           <span class="user-email">{{ userEmail || 'Usuário' }}</span>
@@ -125,10 +155,10 @@ onMounted(loadMe)
 .sidebar {
   background: var(--surface);
   border-right: 1px solid var(--border);
-  padding: 24px 16px;
+  padding: 24px 14px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 14px;
 }
 
 .brand h1 {
@@ -142,34 +172,88 @@ onMounted(loadMe)
   font-size: 14px;
 }
 
+.brand {
+  padding: 0 4px 12px;
+  border-bottom: 1px solid #d7dee9;
+}
+
 .nav {
   display: grid;
-  gap: 8px;
+  gap: 6px;
+}
+
+.nav-section {
+  padding: 0 4px 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.nav-main {
+  margin-top: 2px;
+}
+
+.nav-section-last {
+  border-bottom: 0;
+  padding-bottom: 4px;
+}
+
+.nav-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 6px;
 }
 
 .nav-link {
-  height: 40px;
+  height: 38px;
   border-radius: 10px;
   display: flex;
   align-items: center;
-  padding: 0 12px;
+  padding: 0 10px;
   color: var(--text);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .nav-link:hover {
-  background: #eef2ff;
+  background: #f1f5f9;
 }
 
 .nav-link.active {
-  background: var(--primary);
-  color: #fff;
+  background: #e8efff;
+  color: #1d4ed8;
+  border-left: 3px solid #2563eb;
+}
+
+.nav-link-dashboard {
+  background: #f8fbff;
+}
+
+.nav-link-dashboard.active {
+  background: #dbeafe;
 }
 
 .user-menu-wrapper {
   margin-top: auto;
   position: relative;
+  padding: 10px 4px 0;
+}
+
+.profile-divider {
+  height: 1px;
+  background: #d7dee9;
+  margin-bottom: 10px;
+}
+
+.profile-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 8px;
 }
 
 .user-trigger {
