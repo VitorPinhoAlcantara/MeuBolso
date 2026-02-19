@@ -1,6 +1,6 @@
 package br.com.meubolso.domain;
 
-import br.com.meubolso.domain.enums.AccountType;
+import br.com.meubolso.domain.enums.PaymentMethodType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,8 +15,8 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "accounts")
-public class Account {
+@Table(name = "payment_methods")
+public class PaymentMethod {
 
     @Id
     private UUID id;
@@ -24,18 +24,15 @@ public class Account {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Column(name = "account_id", nullable = false)
+    private UUID accountId;
+
     @Column(nullable = false, length = 100)
     private String name;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private AccountType type;
-
-    @Column(nullable = false, length = 3)
-    private String currency;
-
-    @Column(name = "balance", nullable = false, precision = 14, scale = 2)
-    private BigDecimal balance;
+    private PaymentMethodType type;
 
     @Column(name = "billing_closing_day")
     private Integer billingClosingDay;
@@ -46,6 +43,9 @@ public class Account {
     @Column(name = "credit_limit", precision = 14, scale = 2)
     private BigDecimal creditLimit;
 
+    @Column(name = "is_default", nullable = false)
+    private boolean isDefault;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -54,9 +54,9 @@ public class Account {
 
     @PrePersist
     void prePersist() {
-        if (id == null) id = UUID.randomUUID();
-        if (currency == null) currency = "BRL";
-        if (balance == null) balance = BigDecimal.ZERO;
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
         var now = OffsetDateTime.now();
         createdAt = now;
         updatedAt = now;
@@ -67,23 +67,45 @@ public class Account {
         updatedAt = OffsetDateTime.now();
     }
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public UUID getId() {
+        return id;
+    }
 
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
+    public void setId(UUID id) {
+        this.id = id;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public UUID getUserId() {
+        return userId;
+    }
 
-    public AccountType getType() { return type; }
-    public void setType(AccountType type) { this.type = type; }
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
 
-    public String getCurrency() { return currency; }
-    public void setCurrency(String currency) { this.currency = currency; }
+    public UUID getAccountId() {
+        return accountId;
+    }
 
-    public BigDecimal getBalance() { return balance; }
-    public void setBalance(BigDecimal balance) { this.balance = balance; }
+    public void setAccountId(UUID accountId) {
+        this.accountId = accountId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public PaymentMethodType getType() {
+        return type;
+    }
+
+    public void setType(PaymentMethodType type) {
+        this.type = type;
+    }
 
     public Integer getBillingClosingDay() {
         return billingClosingDay;
@@ -109,9 +131,27 @@ public class Account {
         this.creditLimit = creditLimit;
     }
 
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
+    public boolean isDefault() {
+        return isDefault;
+    }
 
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public void setDefault(boolean aDefault) {
+        isDefault = aDefault;
+    }
+
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public OffsetDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(OffsetDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 }

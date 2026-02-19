@@ -2,11 +2,15 @@ package br.com.meubolso.service;
 
 import br.com.meubolso.domain.Account;
 import br.com.meubolso.domain.Category;
+import br.com.meubolso.domain.PaymentMethod;
+import br.com.meubolso.domain.enums.PaymentMethodType;
 import br.com.meubolso.domain.enums.CategoryType;
 import br.com.meubolso.domain.enums.TransactionType;
 import br.com.meubolso.dto.TransactionCreateRequest;
 import br.com.meubolso.repository.AccountRepository;
 import br.com.meubolso.repository.CategoryRepository;
+import br.com.meubolso.repository.PaymentMethodRepository;
+import br.com.meubolso.repository.TransactionAttachmentRepository;
 import br.com.meubolso.repository.TransactionRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +27,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -38,6 +43,18 @@ class TransactionServiceTest {
 
     @Mock
     private CategoryRepository categoryRepository;
+
+    @Mock
+    private PaymentMethodRepository paymentMethodRepository;
+
+    @Mock
+    private TransactionAttachmentRepository transactionAttachmentRepository;
+
+    @Mock
+    private MinioStorageService minioStorageService;
+
+    @Mock
+    private CardInvoiceService cardInvoiceService;
 
     @InjectMocks
     private TransactionService transactionService;
@@ -57,6 +74,12 @@ class TransactionServiceTest {
         category.setUserId(userId);
         category.setType(CategoryType.EXPENSE);
 
+        PaymentMethod paymentMethod = new PaymentMethod();
+        paymentMethod.setId(UUID.randomUUID());
+        paymentMethod.setUserId(userId);
+        paymentMethod.setAccountId(accountId);
+        paymentMethod.setType(PaymentMethodType.PIX);
+
         TransactionCreateRequest request = new TransactionCreateRequest();
         request.setAccountId(accountId);
         request.setCategoryId(categoryId);
@@ -65,13 +88,15 @@ class TransactionServiceTest {
         request.setDate(LocalDate.now());
 
         when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+        when(paymentMethodRepository.findFirstByUserIdAndAccountIdOrderByIsDefaultDescCreatedAtAsc(userId, accountId))
+                .thenReturn(Optional.of(paymentMethod));
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> transactionService.create(userId, request));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-        verify(accountRepository).findById(accountId);
+        verify(accountRepository, atLeastOnce()).findById(accountId);
         verify(categoryRepository).findById(categoryId);
         verifyNoInteractions(transactionRepository);
     }

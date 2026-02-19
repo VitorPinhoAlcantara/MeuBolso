@@ -1,11 +1,13 @@
 package br.com.meubolso.service;
 
 import br.com.meubolso.domain.Account;
+import br.com.meubolso.domain.PaymentMethod;
 import br.com.meubolso.domain.Category;
 import br.com.meubolso.domain.RefreshToken;
 import br.com.meubolso.domain.User;
 import br.com.meubolso.domain.enums.AccountType;
 import br.com.meubolso.domain.enums.CategoryType;
+import br.com.meubolso.domain.enums.PaymentMethodType;
 import br.com.meubolso.repository.AccountRepository;
 import br.com.meubolso.dto.AuthLoginRequest;
 import br.com.meubolso.dto.AuthMeResponse;
@@ -13,6 +15,7 @@ import br.com.meubolso.dto.AuthRefreshRequest;
 import br.com.meubolso.dto.AuthRegisterRequest;
 import br.com.meubolso.dto.AuthTokenResponse;
 import br.com.meubolso.repository.CategoryRepository;
+import br.com.meubolso.repository.PaymentMethodRepository;
 import br.com.meubolso.repository.RefreshTokenRepository;
 import br.com.meubolso.repository.UserRepository;
 import br.com.meubolso.security.AuthenticatedUser;
@@ -33,6 +36,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final AccountRepository accountRepository;
+    private final PaymentMethodRepository paymentMethodRepository;
     private final CategoryRepository categoryRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
@@ -40,12 +44,14 @@ public class AuthService {
 
     public AuthService(UserRepository userRepository,
                        AccountRepository accountRepository,
+                       PaymentMethodRepository paymentMethodRepository,
                        CategoryRepository categoryRepository,
                        RefreshTokenRepository refreshTokenRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService) {
         this.userRepository = userRepository;
         this.accountRepository = accountRepository;
+        this.paymentMethodRepository = paymentMethodRepository;
         this.categoryRepository = categoryRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
@@ -178,11 +184,19 @@ public class AuthService {
         Account wallet = new Account();
         wallet.setUserId(user.getId());
         wallet.setName("Carteira");
-        wallet.setType(AccountType.CASH);
+        wallet.setType(AccountType.BANK);
         wallet.setCurrency("BRL");
         wallet.setBalance(BigDecimal.ZERO);
 
-        accountRepository.save(wallet);
+        Account savedWallet = accountRepository.save(wallet);
+
+        PaymentMethod cashMethod = new PaymentMethod();
+        cashMethod.setUserId(user.getId());
+        cashMethod.setAccountId(savedWallet.getId());
+        cashMethod.setName("Dinheiro");
+        cashMethod.setType(PaymentMethodType.CASH);
+        cashMethod.setDefault(true);
+        paymentMethodRepository.save(cashMethod);
     }
 
     private record CategorySeed(String name, CategoryType type, String color) {}

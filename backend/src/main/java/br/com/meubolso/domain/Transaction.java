@@ -28,6 +28,9 @@ public class Transaction {
     @Column(name = "account_id", nullable = false)
     private UUID accountId;
 
+    @Column(name = "payment_method_id", nullable = false)
+    private UUID paymentMethodId;
+
     @Column(name = "category_id", nullable = false)
     private UUID categoryId;
 
@@ -40,6 +43,21 @@ public class Transaction {
 
     @Column(name = "date", nullable = false)
     private LocalDate transactionDate;
+
+    @Column(name = "purchase_date", nullable = false)
+    private LocalDate purchaseDate;
+
+    @Column(name = "installment_group_id")
+    private UUID installmentGroupId;
+
+    @Column(name = "installment_number", nullable = false)
+    private Integer installmentNumber;
+
+    @Column(name = "installment_total", nullable = false)
+    private Integer installmentTotal;
+
+    @Column(name = "invoice_id")
+    private UUID invoiceId;
 
     @Column(length = 255)
     private String description;
@@ -54,6 +72,15 @@ public class Transaction {
     void prePersist() {
         if (id == null) {
             id = UUID.randomUUID();
+        }
+        if (purchaseDate == null) {
+            purchaseDate = transactionDate;
+        }
+        if (installmentNumber == null) {
+            installmentNumber = 1;
+        }
+        if (installmentTotal == null) {
+            installmentTotal = 1;
         }
         var now = OffsetDateTime.now();
         createdAt = now;
@@ -97,6 +124,14 @@ public class Transaction {
         this.categoryId = categoryId;
     }
 
+    public UUID getPaymentMethodId() {
+        return paymentMethodId;
+    }
+
+    public void setPaymentMethodId(UUID paymentMethodId) {
+        this.paymentMethodId = paymentMethodId;
+    }
+
     public TransactionType getType() {
         return type;
     }
@@ -127,6 +162,46 @@ public class Transaction {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public LocalDate getPurchaseDate() {
+        return purchaseDate;
+    }
+
+    public void setPurchaseDate(LocalDate purchaseDate) {
+        this.purchaseDate = purchaseDate;
+    }
+
+    public UUID getInstallmentGroupId() {
+        return installmentGroupId;
+    }
+
+    public void setInstallmentGroupId(UUID installmentGroupId) {
+        this.installmentGroupId = installmentGroupId;
+    }
+
+    public Integer getInstallmentNumber() {
+        return installmentNumber;
+    }
+
+    public void setInstallmentNumber(Integer installmentNumber) {
+        this.installmentNumber = installmentNumber;
+    }
+
+    public Integer getInstallmentTotal() {
+        return installmentTotal;
+    }
+
+    public void setInstallmentTotal(Integer installmentTotal) {
+        this.installmentTotal = installmentTotal;
+    }
+
+    public UUID getInvoiceId() {
+        return invoiceId;
+    }
+
+    public void setInvoiceId(UUID invoiceId) {
+        this.invoiceId = invoiceId;
     }
 
     public OffsetDateTime getCreatedAt() {

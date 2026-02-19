@@ -4,6 +4,7 @@ import br.com.meubolso.domain.enums.AccountType;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class AccountResponse {
@@ -14,6 +15,7 @@ public class AccountResponse {
     private AccountType type;
     private String currency;
     private BigDecimal balance;
+    private List<PaymentMethodResponse> paymentMethods;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
@@ -34,6 +36,14 @@ public class AccountResponse {
 
     public BigDecimal getBalance() { return balance; }
     public void setBalance(BigDecimal balance) { this.balance = balance; }
+
+    public List<PaymentMethodResponse> getPaymentMethods() {
+        return paymentMethods;
+    }
+
+    public void setPaymentMethods(List<PaymentMethodResponse> paymentMethods) {
+        this.paymentMethods = paymentMethods;
+    }
 
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }

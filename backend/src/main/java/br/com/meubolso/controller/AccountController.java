@@ -1,6 +1,5 @@
 package br.com.meubolso.controller;
 
-import br.com.meubolso.domain.enums.AccountType;
 import br.com.meubolso.dto.AccountCreateRequest;
 import br.com.meubolso.dto.AccountResponse;
 import br.com.meubolso.security.AuthenticatedUser;
@@ -34,9 +33,8 @@ public class AccountController {
 
     @GetMapping
     public Page<AccountResponse> findAll(@AuthenticationPrincipal AuthenticatedUser currentUser,
-                                         @RequestParam(required = false) AccountType type,
                                          @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
-        return accountService.findAllByUser(currentUser.userId(), type, pageable);
+        return accountService.findAllByUser(currentUser.userId(), pageable);
     }
 
     @GetMapping("/{id}")

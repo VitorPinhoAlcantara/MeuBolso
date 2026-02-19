@@ -12,10 +12,16 @@ public class TransactionResponse {
     private UUID id;
     private UUID userId;
     private UUID accountId;
+    private UUID paymentMethodId;
     private UUID categoryId;
     private TransactionType type;
     private BigDecimal amount;
     private LocalDate date;
+    private LocalDate purchaseDate;
+    private UUID installmentGroupId;
+    private Integer installmentNumber;
+    private Integer installmentTotal;
+    private UUID invoiceId;
     private String description;
     private Long attachmentsCount;
     private OffsetDateTime createdAt;
@@ -53,6 +59,14 @@ public class TransactionResponse {
         this.categoryId = categoryId;
     }
 
+    public UUID getPaymentMethodId() {
+        return paymentMethodId;
+    }
+
+    public void setPaymentMethodId(UUID paymentMethodId) {
+        this.paymentMethodId = paymentMethodId;
+    }
+
     public TransactionType getType() {
         return type;
     }
@@ -75,6 +89,46 @@ public class TransactionResponse {
 
     public void setDate(LocalDate date) {
         this.date = date;
+    }
+
+    public LocalDate getPurchaseDate() {
+        return purchaseDate;
+    }
+
+    public void setPurchaseDate(LocalDate purchaseDate) {
+        this.purchaseDate = purchaseDate;
+    }
+
+    public UUID getInstallmentGroupId() {
+        return installmentGroupId;
+    }
+
+    public void setInstallmentGroupId(UUID installmentGroupId) {
+        this.installmentGroupId = installmentGroupId;
+    }
+
+    public Integer getInstallmentNumber() {
+        return installmentNumber;
+    }
+
+    public void setInstallmentNumber(Integer installmentNumber) {
+        this.installmentNumber = installmentNumber;
+    }
+
+    public Integer getInstallmentTotal() {
+        return installmentTotal;
+    }
+
+    public void setInstallmentTotal(Integer installmentTotal) {
+        this.installmentTotal = installmentTotal;
+    }
+
+    public UUID getInvoiceId() {
+        return invoiceId;
+    }
+
+    public void setInvoiceId(UUID invoiceId) {
+        this.invoiceId = invoiceId;
     }
 
     public String getDescription() {

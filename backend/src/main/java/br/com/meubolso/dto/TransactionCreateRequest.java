@@ -3,6 +3,8 @@ package br.com.meubolso.dto;
 import br.com.meubolso.domain.enums.TransactionType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
@@ -11,8 +13,9 @@ import java.util.UUID;
 
 public class TransactionCreateRequest {
 
-    @NotNull
     private UUID accountId;
+
+    private UUID paymentMethodId;
 
     @NotNull
     private UUID categoryId;
@@ -26,6 +29,14 @@ public class TransactionCreateRequest {
 
     @NotNull
     private LocalDate date;
+
+    private LocalDate purchaseDate;
+
+    @Min(1)
+    @Max(120)
+    private Integer installments;
+
+    private LocalDate firstInstallmentDate;
 
     @Size(max = 255)
     private String description;
@@ -44,6 +55,14 @@ public class TransactionCreateRequest {
 
     public void setCategoryId(UUID categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public UUID getPaymentMethodId() {
+        return paymentMethodId;
+    }
+
+    public void setPaymentMethodId(UUID paymentMethodId) {
+        this.paymentMethodId = paymentMethodId;
     }
 
     public TransactionType getType() {
@@ -68,6 +87,30 @@ public class TransactionCreateRequest {
 
     public void setDate(LocalDate date) {
         this.date = date;
+    }
+
+    public LocalDate getPurchaseDate() {
+        return purchaseDate;
+    }
+
+    public void setPurchaseDate(LocalDate purchaseDate) {
+        this.purchaseDate = purchaseDate;
+    }
+
+    public Integer getInstallments() {
+        return installments;
+    }
+
+    public void setInstallments(Integer installments) {
+        this.installments = installments;
+    }
+
+    public LocalDate getFirstInstallmentDate() {
+        return firstInstallmentDate;
+    }
+
+    public void setFirstInstallmentDate(LocalDate firstInstallmentDate) {
+        this.firstInstallmentDate = firstInstallmentDate;
     }
 
     public String getDescription() {

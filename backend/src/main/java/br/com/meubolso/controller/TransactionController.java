@@ -60,11 +60,13 @@ public class TransactionController {
                                              @RequestParam(required = false) LocalDate to,
                                              @RequestParam(required = false) TransactionType type,
                                              @RequestParam(required = false) UUID accountId,
+                                             @RequestParam(required = false) UUID paymentMethodId,
                                              @RequestParam(required = false) UUID categoryId,
                                              @RequestParam(required = false, name = "q") String query,
                                              @PageableDefault(size = 20, sort = {"transactionDate", "createdAt"},
                                                      direction = Sort.Direction.DESC) Pageable pageable) {
-        return transactionService.findAllByUser(currentUser.userId(), from, to, type, accountId, categoryId, query, pageable);
+        return transactionService.findAllByUser(
+                currentUser.userId(), from, to, type, accountId, paymentMethodId, categoryId, query, pageable);
     }
 
     @GetMapping("/{id}")

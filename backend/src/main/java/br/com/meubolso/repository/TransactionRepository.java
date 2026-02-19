@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,24 +17,31 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
 
   Optional<Transaction> findByIdAndUserId(UUID id, UUID userId);
 
+  List<Transaction> findByUserIdAndInstallmentGroupIdOrderByInstallmentNumberAsc(UUID userId, UUID installmentGroupId);
+
   boolean existsByUserIdAndAccountId(UUID userId, UUID accountId);
+
+  boolean existsByUserIdAndPaymentMethodId(UUID userId, UUID paymentMethodId);
 
   boolean existsByUserIdAndCategoryId(UUID userId, UUID categoryId);
 
   @Query("""
           select t from Transaction t
           join Account a on a.id = t.accountId
+          join PaymentMethod pm on pm.id = t.paymentMethodId
           join Category c on c.id = t.categoryId
           where t.userId = :userId
             and (:from is null or t.transactionDate >= :from)
             and (:to is null or t.transactionDate <= :to)
             and (:type is null or t.type = :type)
             and (:accountId is null or t.accountId = :accountId)
+            and (:paymentMethodId is null or t.paymentMethodId = :paymentMethodId)
             and (:categoryId is null or t.categoryId = :categoryId)
             and (
               :query = ''
               or lower(coalesce(t.description, '')) like concat('%', :query, '%')
               or lower(a.name) like concat('%', :query, '%')
+              or lower(pm.name) like concat('%', :query, '%')
               or lower(c.name) like concat('%', :query, '%')
             )
           order by t.transactionDate desc, t.createdAt desc
@@ -43,6 +51,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
                                           LocalDate to,
                                           TransactionType type,
                                           UUID accountId,
+                                          UUID paymentMethodId,
                                           UUID categoryId,
                                           String query,
                                           Pageable pageable);

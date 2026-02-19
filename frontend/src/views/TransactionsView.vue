@@ -8,14 +8,21 @@ import { api } from '../services/api'
 import { transactionTypeLabel } from '../utils/enumLabels'
 
 type TransactionType = 'INCOME' | 'EXPENSE'
-type AccountType = 'CASH' | 'BANK' | 'CARD' | 'OTHER'
+type PaymentMethodType = 'CARD' | 'PIX' | 'CASH'
 type CategoryType = 'INCOME' | 'EXPENSE'
 type DatePreset = 'ALL' | 'THIS_MONTH' | 'LAST_7_DAYS' | 'LAST_30_DAYS' | 'CUSTOM'
+
+type PaymentMethod = {
+  id: string
+  accountId: string
+  name: string
+  type: PaymentMethodType
+}
 
 type Account = {
   id: string
   name: string
-  type: AccountType
+  paymentMethods: PaymentMethod[]
 }
 
 type Category = {
@@ -27,6 +34,7 @@ type Category = {
 type Transaction = {
   id: string
   accountId: string
+  paymentMethodId: string
   categoryId: string
   type: TransactionType
   amount: number
@@ -59,9 +67,11 @@ const page = ref(0)
 const totalPages = ref(0)
 
 const accounts = ref<Account[]>([])
+const paymentMethods = ref<Array<PaymentMethod & { accountName: string }>>([])
 const categories = ref<Category[]>([])
 
 const showFormModal = ref(false)
+const showTransferModal = ref(false)
 const showViewModal = ref(false)
 const showDeleteModal = ref(false)
 const deleting = ref(false)
@@ -86,6 +96,7 @@ const filters = reactive({
   to: '',
   type: '' as '' | TransactionType,
   accountId: '',
+  paymentMethodId: '',
   categoryId: '',
   query: '',
   datePreset: 'ALL' as DatePreset,
@@ -93,8 +104,17 @@ const filters = reactive({
 
 const form = reactive({
   accountId: '',
+  paymentMethodId: '',
   categoryId: '',
   type: 'EXPENSE' as TransactionType,
+  amount: '',
+  date: new Date().toISOString().slice(0, 10),
+  description: '',
+})
+
+const transferForm = reactive({
+  fromAccountId: '',
+  toAccountId: '',
   amount: '',
   date: new Date().toISOString().slice(0, 10),
   description: '',
@@ -104,13 +124,18 @@ const submitLabel = computed(() => (editingId.value ? 'Salvar alterações' : 'C
 const modalTitle = computed(() => (editingId.value ? 'Editar transação' : 'Nova transação'))
 
 const filteredCategories = computed(() => categories.value.filter((c) => c.type === form.type))
+const filteredMethods = computed(() =>
+  paymentMethods.value.filter((method) => !form.accountId || method.accountId === form.accountId),
+)
 
 const accountNameById = (id: string) => accounts.value.find((a) => a.id === id)?.name ?? id.slice(0, 8)
+const paymentMethodNameById = (id: string) => paymentMethods.value.find((m) => m.id === id)?.name ?? id.slice(0, 8)
 const categoryNameById = (id: string) => categories.value.find((c) => c.id === id)?.name ?? id.slice(0, 8)
 
 const resetForm = () => {
   editingId.value = null
   form.accountId = ''
+  form.paymentMethodId = ''
   form.categoryId = ''
   form.type = 'EXPENSE'
   form.amount = ''
@@ -129,14 +154,57 @@ const selectType = (type: TransactionType) => {
   }
 }
 
+const onAccountChange = () => {
+  if (!form.paymentMethodId) return
+  const selected = paymentMethods.value.find((method) => method.id === form.paymentMethodId)
+  if (!selected || selected.accountId !== form.accountId) {
+    form.paymentMethodId = ''
+  }
+}
+
 const openCreateModal = () => {
   resetForm()
   showFormModal.value = true
 }
 
+const openTransferModal = () => {
+  transferForm.fromAccountId = ''
+  transferForm.toAccountId = ''
+  transferForm.amount = ''
+  transferForm.date = new Date().toISOString().slice(0, 10)
+  transferForm.description = ''
+  showTransferModal.value = true
+}
+
+const submitTransfer = async () => {
+  saving.value = true
+  try {
+    await api.post('/api/v1/transfers', {
+      fromAccountId: transferForm.fromAccountId,
+      toAccountId: transferForm.toAccountId,
+      amount: Number(transferForm.amount),
+      date: transferForm.date,
+      description: transferForm.description || null,
+    })
+    toast.success('Transferência realizada com sucesso.')
+    showTransferModal.value = false
+    await Promise.all([loadAccounts(), loadTransactions(page.value)])
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      toast.error(err.response?.data?.error ?? 'Falha ao transferir.')
+    } else {
+      toast.error('Falha ao transferir.')
+    }
+  } finally {
+    saving.value = false
+  }
+}
+
 const openEditModal = async (item: Transaction) => {
+  const fallbackMethodId = paymentMethods.value.find((method) => method.accountId === item.accountId)?.id ?? ''
   editingId.value = item.id
   form.accountId = item.accountId
+  form.paymentMethodId = item.paymentMethodId || fallbackMethodId
   form.categoryId = item.categoryId
   form.type = item.type
   form.amount = String(item.amount)
@@ -308,6 +376,12 @@ const loadAccounts = async () => {
     params: { page: 0, size: 200, sort: 'createdAt,desc' },
   })
   accounts.value = response.data.content
+  paymentMethods.value = accounts.value.flatMap((account) =>
+    (account.paymentMethods ?? []).map((method) => ({
+      ...method,
+      accountName: account.name,
+    })),
+  )
 }
 
 const loadCategories = async () => {
@@ -330,6 +404,7 @@ const loadTransactions = async (targetPage = 0) => {
         to: filters.to || undefined,
         type: filters.type || undefined,
         accountId: filters.accountId || undefined,
+        paymentMethodId: filters.paymentMethodId || undefined,
         categoryId: filters.categoryId || undefined,
         q: filters.query.trim() || undefined,
       },
@@ -391,7 +466,8 @@ const submit = async () => {
 
   try {
     const payload = {
-      accountId: form.accountId,
+      accountId: form.accountId || undefined,
+      paymentMethodId: form.paymentMethodId,
       categoryId: form.categoryId,
       type: form.type,
       amount: Number(form.amount),
@@ -469,7 +545,10 @@ onMounted(async () => {
   <section class="panel list-panel">
     <header class="list-header">
       <h3>Transações</h3>
-      <button class="btn btn-primary" type="button" @click="openCreateModal">Nova transação</button>
+      <div class="header-actions">
+        <button class="btn btn-secondary" type="button" @click="openTransferModal">Transferir</button>
+        <button class="btn btn-primary" type="button" @click="openCreateModal">Nova transação</button>
+      </div>
     </header>
 
     <div class="filters">
@@ -477,6 +556,12 @@ onMounted(async () => {
       <select v-model="filters.accountId">
         <option value="">Conta (todas)</option>
         <option v-for="account in accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
+      </select>
+      <select v-model="filters.paymentMethodId">
+        <option value="">Método (todos)</option>
+        <option v-for="method in paymentMethods" :key="method.id" :value="method.id">
+          {{ method.accountName }} - {{ method.name }}
+        </option>
       </select>
       <select v-model="filters.type">
         <option value="">Tipo (todos)</option>
@@ -511,6 +596,7 @@ onMounted(async () => {
           <th>Data</th>
           <th>Tipo</th>
           <th>Conta</th>
+          <th>Método</th>
           <th>Categoria</th>
           <th>Valor</th>
           <th>Descrição</th>
@@ -523,6 +609,7 @@ onMounted(async () => {
           <td>{{ new Date(item.date + 'T00:00:00').toLocaleDateString('pt-BR') }}</td>
           <td>{{ transactionTypeLabel[item.type] ?? item.type }}</td>
           <td>{{ accountNameById(item.accountId) }}</td>
+          <td>{{ paymentMethodNameById(item.paymentMethodId) }}</td>
           <td>{{ categoryNameById(item.categoryId) }}</td>
           <td :class="item.type === 'EXPENSE' ? 'amount-expense' : 'amount-income'">
             R$ {{ Number(item.amount).toFixed(2) }}
@@ -581,7 +668,7 @@ onMounted(async () => {
           <div class="form-row">
             <label class="field">
               <span>Conta</span>
-              <select v-model="form.accountId" required>
+              <select v-model="form.accountId" @change="onAccountChange">
                 <option value="" disabled>Selecione</option>
                 <option v-for="account in accounts" :key="account.id" :value="account.id">
                   {{ account.name }}
@@ -589,6 +676,18 @@ onMounted(async () => {
               </select>
             </label>
 
+            <label class="field">
+              <span>Método de pagamento</span>
+              <select v-model="form.paymentMethodId" required>
+                <option value="" disabled>Selecione</option>
+                <option v-for="method in filteredMethods" :key="method.id" :value="method.id">
+                  {{ method.accountName }} - {{ method.name }}
+                </option>
+              </select>
+            </label>
+          </div>
+
+          <div class="form-row">
             <label class="field">
               <span>Categoria</span>
               <select v-model="form.categoryId" required>
@@ -598,6 +697,7 @@ onMounted(async () => {
                 </option>
               </select>
             </label>
+            <div></div>
           </div>
 
           <div class="form-row">
@@ -684,6 +784,56 @@ onMounted(async () => {
   </Teleport>
 
   <Teleport to="body">
+    <div v-if="showTransferModal" class="modal-backdrop" @click.self="showTransferModal = false">
+      <section class="modal-card">
+        <h3>Transferência entre bancos</h3>
+
+        <form class="form" @submit.prevent="submitTransfer">
+          <div class="form-row">
+            <label class="field">
+              <span>Origem</span>
+              <select v-model="transferForm.fromAccountId" required>
+                <option value="" disabled>Selecione</option>
+                <option v-for="account in accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Destino</span>
+              <select v-model="transferForm.toAccountId" required>
+                <option value="" disabled>Selecione</option>
+                <option v-for="account in accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label class="field">
+              <span>Valor</span>
+              <input v-model="transferForm.amount" type="number" min="0.01" step="0.01" required />
+            </label>
+            <label class="field">
+              <span>Data</span>
+              <input v-model="transferForm.date" type="date" required />
+            </label>
+          </div>
+
+          <label class="field">
+            <span>Descrição</span>
+            <input v-model.trim="transferForm.description" type="text" maxlength="255" />
+          </label>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" @click="showTransferModal = false">Cancelar</button>
+            <button type="submit" class="btn btn-primary" :disabled="saving">
+              {{ saving ? 'Transferindo...' : 'Confirmar transferência' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </Teleport>
+
+  <Teleport to="body">
     <div v-if="showViewModal && selectedView" class="modal-backdrop" @click.self="closeViewModal">
       <section class="modal-card view-modal">
         <h3>Detalhes da transação</h3>
@@ -700,6 +850,10 @@ onMounted(async () => {
           <div>
             <dt>Conta</dt>
             <dd>{{ accountNameById(selectedView.accountId) }}</dd>
+          </div>
+          <div>
+            <dt>Método</dt>
+            <dd>{{ paymentMethodNameById(selectedView.paymentMethodId) }}</dd>
           </div>
           <div>
             <dt>Categoria</dt>
@@ -787,10 +941,15 @@ onMounted(async () => {
   margin: 0;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .filters {
   margin-top: 12px;
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(9, minmax(0, 1fr));
   gap: 8px;
 }
 
