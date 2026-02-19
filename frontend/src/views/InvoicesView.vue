@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import axios from 'axios'
 import { onMounted, reactive, ref } from 'vue'
-import { Eye, Pencil } from 'lucide-vue-next'
+import { Eye, Pencil, Trash2 } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useToast } from '../composables/useToast'
 import { api } from '../services/api'
@@ -44,6 +44,8 @@ const router = useRouter()
 const loading = ref(false)
 const paying = ref(false)
 const canceling = ref(false)
+const saving = ref(false)
+const deleting = ref(false)
 
 const items = ref<CardInvoice[]>([])
 const page = ref(0)
@@ -62,10 +64,14 @@ const filters = reactive({
 
 const showPayModal = ref(false)
 const showManageModal = ref(false)
+const showDeleteConfirmModal = ref(false)
 const selectedInvoice = ref<CardInvoice | null>(null)
 const managingInvoice = ref<CardInvoice | null>(null)
 const payForm = reactive({
   fromAccountId: '',
+})
+const manageForm = reactive({
+  totalAmount: '',
 })
 
 const statusLabel: Record<InvoiceStatus, string> = {
@@ -164,7 +170,12 @@ const submitPay = async () => {
 
 const openManageModal = (invoice: CardInvoice) => {
   managingInvoice.value = invoice
+  manageForm.totalAmount = String(Number(invoice.totalAmount ?? 0).toFixed(2))
   showManageModal.value = true
+}
+
+const openDeleteConfirm = () => {
+  showDeleteConfirmModal.value = true
 }
 
 const openTransactionsForInvoice = (invoice: CardInvoice) => {
@@ -209,6 +220,51 @@ const submitCancelPayment = async () => {
     }
   } finally {
     canceling.value = false
+  }
+}
+
+const submitUpdateInvoice = async () => {
+  if (!managingInvoice.value) return
+  saving.value = true
+  try {
+    const raw = String(manageForm.totalAmount ?? '').trim().replace(',', '.')
+    const totalAmount = Number.parseFloat(raw)
+    if (!Number.isFinite(totalAmount) || totalAmount < 0) {
+      toast.error('Informe um valor total válido.')
+      return
+    }
+    await api.patch(`/api/v1/invoices/${managingInvoice.value.id}`, { totalAmount })
+    toast.success('Fatura atualizada com sucesso.')
+    showManageModal.value = false
+    await Promise.all([loadAccounts(), loadInvoices(page.value)])
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      toast.error(err.response?.data?.error ?? 'Falha ao atualizar fatura.')
+    } else {
+      toast.error('Falha ao atualizar fatura.')
+    }
+  } finally {
+    saving.value = false
+  }
+}
+
+const submitDeleteInvoice = async () => {
+  if (!managingInvoice.value) return
+  deleting.value = true
+  try {
+    await api.delete(`/api/v1/invoices/${managingInvoice.value.id}`)
+    toast.success('Fatura excluída com sucesso.')
+    showDeleteConfirmModal.value = false
+    showManageModal.value = false
+    await Promise.all([loadAccounts(), loadInvoices(0)])
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      toast.error(err.response?.data?.error ?? 'Falha ao excluir fatura.')
+    } else {
+      toast.error('Falha ao excluir fatura.')
+    }
+  } finally {
+    deleting.value = false
   }
 }
 
@@ -340,10 +396,21 @@ onMounted(async () => {
     <div v-if="showManageModal && managingInvoice" class="modal-backdrop" @click.self="showManageModal = false">
       <section class="modal-card">
         <h3>Editar fatura</h3>
-        <form class="form" @submit.prevent>
+        <form class="form" @submit.prevent="submitUpdateInvoice">
           <label class="field">
             <span>Fatura</span>
             <input :value="`${monthLabel(managingInvoice.periodYear, managingInvoice.periodMonth)} - ${formatMoney(managingInvoice.totalAmount)}`" type="text" disabled />
+          </label>
+          <label class="field">
+            <span>Valor total da fatura</span>
+            <input
+              v-model="manageForm.totalAmount"
+              type="number"
+              inputmode="decimal"
+              min="0"
+              step="0.01"
+              required
+            />
           </label>
           <label class="field">
             <span>Status</span>
@@ -352,6 +419,9 @@ onMounted(async () => {
 
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" @click="showManageModal = false">Fechar</button>
+            <button type="submit" class="btn btn-primary" :disabled="saving">
+              {{ saving ? 'Salvando...' : 'Salvar alterações' }}
+            </button>
             <button
               v-if="managingInvoice.status === 'PAID'"
               type="button"
@@ -361,8 +431,26 @@ onMounted(async () => {
             >
               {{ canceling ? 'Cancelando...' : 'Cancelar pagamento' }}
             </button>
+            <button type="button" class="icon-btn icon-delete" title="Excluir fatura" @click="openDeleteConfirm">
+              <Trash2 :size="16" :stroke-width="2.2" />
+            </button>
           </div>
         </form>
+      </section>
+    </div>
+  </Teleport>
+
+  <Teleport to="body">
+    <div v-if="showDeleteConfirmModal && managingInvoice" class="modal-backdrop" @click.self="showDeleteConfirmModal = false">
+      <section class="modal-card modal-card-sm">
+        <h3>Excluir fatura</h3>
+        <p class="muted">Essa ação remove a fatura. Se ela já estiver paga, o saldo da conta pagadora será estornado.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" :disabled="deleting" @click="showDeleteConfirmModal = false">Cancelar</button>
+          <button type="button" class="btn btn-danger-soft" :disabled="deleting" @click="submitDeleteInvoice">
+            {{ deleting ? 'Excluindo...' : 'Confirmar exclusão' }}
+          </button>
+        </div>
       </section>
     </div>
   </Teleport>
@@ -456,6 +544,14 @@ onMounted(async () => {
   background: #e2e8f0;
 }
 
+.icon-delete {
+  color: #dc2626;
+}
+
+.icon-delete:hover {
+  background: #fee2e2;
+}
+
 .pager {
   margin-top: 12px;
   display: flex;
@@ -508,6 +604,10 @@ onMounted(async () => {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
+}
+
+.modal-card-sm {
+  max-width: 420px;
 }
 
 .modal-card h3 {

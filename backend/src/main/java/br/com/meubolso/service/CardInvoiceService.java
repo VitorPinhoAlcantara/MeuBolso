@@ -7,6 +7,7 @@ import br.com.meubolso.domain.enums.InvoiceStatus;
 import br.com.meubolso.domain.enums.PaymentMethodType;
 import br.com.meubolso.dto.CardInvoicePaymentRequest;
 import br.com.meubolso.dto.CardInvoiceResponse;
+import br.com.meubolso.dto.CardInvoiceUpdateRequest;
 import br.com.meubolso.repository.AccountRepository;
 import br.com.meubolso.repository.CardInvoiceRepository;
 import org.springframework.data.domain.Page;
@@ -104,6 +105,48 @@ public class CardInvoiceService {
     }
 
     @Transactional
+    public CardInvoiceResponse updateInvoice(UUID userId, UUID invoiceId, CardInvoiceUpdateRequest request) {
+        CardInvoice invoice = cardInvoiceRepository.findByIdAndUserId(invoiceId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fatura não encontrada"));
+
+        BigDecimal current = invoice.getTotalAmount() == null ? BigDecimal.ZERO : invoice.getTotalAmount();
+        BigDecimal next = request.getTotalAmount() == null ? BigDecimal.ZERO : request.getTotalAmount();
+        BigDecimal delta = next.subtract(current);
+
+        if (invoice.getStatus() == InvoiceStatus.PAID && delta.signum() != 0) {
+            if (invoice.getPaidFromAccountId() == null) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Fatura paga sem conta pagadora registrada");
+            }
+            Account paidFrom = accountRepository.findById(invoice.getPaidFromAccountId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conta pagadora não encontrada"));
+            if (!paidFrom.getUserId().equals(userId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso negado");
+            }
+            accountRepository.addToBalance(paidFrom.getId(), delta.negate());
+        }
+
+        invoice.setTotalAmount(next);
+        return toResponse(cardInvoiceRepository.save(invoice));
+    }
+
+    @Transactional
+    public void deleteInvoice(UUID userId, UUID invoiceId) {
+        CardInvoice invoice = cardInvoiceRepository.findByIdAndUserId(invoiceId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fatura não encontrada"));
+
+        if (invoice.getStatus() == InvoiceStatus.PAID && invoice.getPaidFromAccountId() != null) {
+            Account paidFrom = accountRepository.findById(invoice.getPaidFromAccountId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conta pagadora não encontrada"));
+            if (!paidFrom.getUserId().equals(userId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso negado");
+            }
+            accountRepository.addToBalance(paidFrom.getId(), invoice.getTotalAmount());
+        }
+
+        cardInvoiceRepository.delete(invoice);
+    }
+
+    @Transactional
     public UUID resolveInvoiceIdForTransaction(UUID userId,
                                                Account account,
                                                PaymentMethod paymentMethod,
@@ -127,8 +170,12 @@ public class CardInvoiceService {
                     created.setPaymentMethodId(paymentMethod.getId());
                     created.setPeriodYear(period.getYear());
                     created.setPeriodMonth(period.getMonthValue());
-                    created.setClosingDate(resolveDay(period, paymentMethod.getBillingClosingDay()));
-                    created.setDueDate(resolveDay(period.plusMonths(1), paymentMethod.getBillingDueDay()));
+                    created.setClosingDate(resolveClosingDate(period, paymentMethod.getBillingClosingDay()));
+                    created.setDueDate(resolveDueDate(
+                            period,
+                            paymentMethod.getBillingClosingDay(),
+                            paymentMethod.getBillingDueDay()
+                    ));
                     created.setStatus(InvoiceStatus.OPEN);
                     created.setTotalAmount(BigDecimal.ZERO);
                     return cardInvoiceRepository.save(created);
@@ -157,12 +204,22 @@ public class CardInvoiceService {
 
     private YearMonth resolveInvoicePeriod(LocalDate transactionDate, int closingDay) {
         YearMonth current = YearMonth.from(transactionDate);
-        return transactionDate.getDayOfMonth() > closingDay ? current.plusMonths(1) : current;
+        return transactionDate.getDayOfMonth() > closingDay ? current : current.minusMonths(1);
+    }
+
+    private LocalDate resolveClosingDate(YearMonth invoicePeriod, int closingDay) {
+        return resolveDay(invoicePeriod.plusMonths(1), closingDay);
     }
 
     private LocalDate resolveDay(YearMonth yearMonth, int day) {
         int safeDay = Math.min(day, yearMonth.lengthOfMonth());
         return yearMonth.atDay(safeDay);
+    }
+
+    private LocalDate resolveDueDate(YearMonth invoicePeriod, int closingDay, int dueDay) {
+        YearMonth closingMonth = invoicePeriod.plusMonths(1);
+        YearMonth dueMonth = dueDay > closingDay ? closingMonth : closingMonth.plusMonths(1);
+        return resolveDay(dueMonth, dueDay);
     }
 
     private CardInvoiceResponse toResponse(CardInvoice invoice) {

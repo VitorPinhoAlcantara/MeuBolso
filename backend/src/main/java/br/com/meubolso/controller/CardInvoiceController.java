@@ -3,6 +3,7 @@ package br.com.meubolso.controller;
 import br.com.meubolso.domain.enums.InvoiceStatus;
 import br.com.meubolso.dto.CardInvoicePaymentRequest;
 import br.com.meubolso.dto.CardInvoiceResponse;
+import br.com.meubolso.dto.CardInvoiceUpdateRequest;
 import br.com.meubolso.security.AuthenticatedUser;
 import br.com.meubolso.service.CardInvoiceService;
 import jakarta.validation.Valid;
@@ -12,7 +13,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -65,5 +68,20 @@ public class CardInvoiceController {
     public CardInvoiceResponse cancelPayment(@AuthenticationPrincipal AuthenticatedUser currentUser,
                                              @PathVariable UUID id) {
         return cardInvoiceService.cancelPayment(currentUser.userId(), id);
+    }
+
+    @PatchMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public CardInvoiceResponse update(@AuthenticationPrincipal AuthenticatedUser currentUser,
+                                      @PathVariable UUID id,
+                                      @Valid @RequestBody CardInvoiceUpdateRequest request) {
+        return cardInvoiceService.updateInvoice(currentUser.userId(), id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@AuthenticationPrincipal AuthenticatedUser currentUser,
+                       @PathVariable UUID id) {
+        cardInvoiceService.deleteInvoice(currentUser.userId(), id);
     }
 }

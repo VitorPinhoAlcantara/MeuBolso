@@ -56,53 +56,77 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
                                           String query,
                                           Pageable pageable);
   
-  @Query("""
+  @Query(value = """
       select coalesce(sum(t.amount), 0)
-      from Transaction t
-      where t.userId = :userId
+      from transactions t
+      join payment_methods pm on pm.id = t.payment_method_id
+      left join card_invoices ci on ci.id = t.invoice_id
+      where t.user_id = :userId
         and t.type = :type
-        and t.transactionDate >= :startDate
-        and t.transactionDate <= :endDate
-      """)
-  BigDecimal sumAmountByTypeAndPeriod(UUID userId, TransactionType type, LocalDate startDate, LocalDate endDate);
+        and (
+          (pm.type = 'CARD' and ci.period_year = :year and ci.period_month = :month)
+          or
+          (pm.type <> 'CARD' and t.date >= :startDate and t.date <= :endDate)
+        )
+      """, nativeQuery = true)
+  BigDecimal sumAmountByTypeAndPeriod(UUID userId,
+                                      String type,
+                                      Integer year,
+                                      Integer month,
+                                      LocalDate startDate,
+                                      LocalDate endDate);
 
-  @Query("""
+  @Query(value = """
           select
-              t.categoryId as categoryId,
+              t.category_id as categoryId,
               c.name as categoryName,
               c.color as categoryColor,
               coalesce(sum(t.amount), 0) as total
-          from Transaction t
-          join Category c on c.id = t.categoryId
-          where t.userId = :userId
+          from transactions t
+          join categories c on c.id = t.category_id
+          join payment_methods pm on pm.id = t.payment_method_id
+          left join card_invoices ci on ci.id = t.invoice_id
+          where t.user_id = :userId
             and t.type = :type
-            and t.transactionDate >= :startDate
-            and t.transactionDate <= :endDate
-          group by t.categoryId, c.name, c.color
+            and (
+              (pm.type = 'CARD' and ci.period_year = :year and ci.period_month = :month)
+              or
+              (pm.type <> 'CARD' and t.date >= :startDate and t.date <= :endDate)
+            )
+          group by t.category_id, c.name, c.color
           order by total desc
-          """)
+          """, nativeQuery = true)
   java.util.List<ExpenseByCategoryProjection> sumExpensesByCategory(UUID userId,
+                                                                    Integer year,
+                                                                    Integer month,
                                                                     LocalDate startDate,
                                                                     LocalDate endDate,
-                                                                    TransactionType type);
+                                                                    String type);
 
-  @Query("""
+  @Query(value = """
           select
-              t.accountId as accountId,
+              t.account_id as accountId,
               a.name as accountName,
               coalesce(sum(t.amount), 0) as total
-          from Transaction t
-          join Account a on a.id = t.accountId
-          where t.userId = :userId
+          from transactions t
+          join accounts a on a.id = t.account_id
+          join payment_methods pm on pm.id = t.payment_method_id
+          left join card_invoices ci on ci.id = t.invoice_id
+          where t.user_id = :userId
             and t.type = :type
-            and t.transactionDate >= :startDate
-            and t.transactionDate <= :endDate
-          group by t.accountId, a.name
+            and (
+              (pm.type = 'CARD' and ci.period_year = :year and ci.period_month = :month)
+              or
+              (pm.type <> 'CARD' and t.date >= :startDate and t.date <= :endDate)
+            )
+          group by t.account_id, a.name
           order by coalesce(sum(t.amount), 0) desc
-          """)
+          """, nativeQuery = true)
   java.util.List<ExpenseByAccountProjection> sumExpensesByAccount(UUID userId,
+                                                                  Integer year,
+                                                                  Integer month,
                                                                   LocalDate startDate,
                                                                   LocalDate endDate,
-                                                                  TransactionType type);
+                                                                  String type);
 
 }

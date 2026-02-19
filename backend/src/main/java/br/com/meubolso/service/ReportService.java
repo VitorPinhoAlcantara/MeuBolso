@@ -30,15 +30,36 @@ public class ReportService {
         LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
 
         BigDecimal totalIncome = transactionRepository
-                .sumAmountByTypeAndPeriod(userId, TransactionType.INCOME, startDate, endDate);
+                .sumAmountByTypeAndPeriod(
+                        userId,
+                        TransactionType.INCOME.name(),
+                        year,
+                        month,
+                        startDate,
+                        endDate
+                );
 
         BigDecimal totalExpense = transactionRepository
-                .sumAmountByTypeAndPeriod(userId, TransactionType.EXPENSE, startDate, endDate);
+                .sumAmountByTypeAndPeriod(
+                        userId,
+                        TransactionType.EXPENSE.name(),
+                        year,
+                        month,
+                        startDate,
+                        endDate
+                );
 
         BigDecimal net = totalIncome.subtract(totalExpense);
 
         List<ExpenseByAccountItem> expensesByAccount = transactionRepository
-                .sumExpensesByAccount(userId, startDate, endDate, TransactionType.EXPENSE)
+                .sumExpensesByAccount(
+                        userId,
+                        year,
+                        month,
+                        startDate,
+                        endDate,
+                        TransactionType.EXPENSE.name()
+                )
                 .stream()
                 .map(p -> {
                     ExpenseByAccountItem item = new ExpenseByAccountItem();
@@ -50,7 +71,14 @@ public class ReportService {
                 .toList();
 
         List<ExpenseByCategoryItem> expensesByCategory = transactionRepository
-                .sumExpensesByCategory(userId, startDate, endDate, TransactionType.EXPENSE)
+                .sumExpensesByCategory(
+                        userId,
+                        year,
+                        month,
+                        startDate,
+                        endDate,
+                        TransactionType.EXPENSE.name()
+                )
                 .stream()
                 .map(p -> {
                     ExpenseByCategoryItem item = new ExpenseByCategoryItem();
