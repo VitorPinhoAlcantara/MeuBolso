@@ -46,6 +46,12 @@ public class CardInvoice {
     @Column(name = "total_amount", nullable = false, precision = 14, scale = 2)
     private BigDecimal totalAmount;
 
+    @Column(name = "paid_from_account_id")
+    private UUID paidFromAccountId;
+
+    @Column(name = "paid_at")
+    private LocalDate paidAt;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private InvoiceStatus status;
@@ -149,6 +155,22 @@ public class CardInvoice {
 
     public void setStatus(InvoiceStatus status) {
         this.status = status;
+    }
+
+    public UUID getPaidFromAccountId() {
+        return paidFromAccountId;
+    }
+
+    public void setPaidFromAccountId(UUID paidFromAccountId) {
+        this.paidFromAccountId = paidFromAccountId;
+    }
+
+    public LocalDate getPaidAt() {
+        return paidAt;
+    }
+
+    public void setPaidAt(LocalDate paidAt) {
+        this.paidAt = paidAt;
     }
 
     public OffsetDateTime getCreatedAt() {

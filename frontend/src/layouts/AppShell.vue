@@ -17,6 +17,7 @@ const userEmail = ref('')
 const navItems = [
   { label: 'Dashboard', to: '/dashboard' },
   { label: 'Transações', to: '/transactions' },
+  { label: 'Faturas', to: '/invoices' },
   { label: 'Contas', to: '/accounts' },
   { label: 'Categorias', to: '/categories' },
 ]
@@ -95,16 +96,23 @@ onMounted(loadMe)
         >
           {{ navItems[2].label }}
         </RouterLink>
-      </nav>
-
-      <nav class="nav nav-section nav-section-last">
-        <span class="nav-title">Organização</span>
         <RouterLink
           :to="navItems[3].to"
           class="nav-link"
           :class="{ active: route.path === navItems[3].to }"
         >
           {{ navItems[3].label }}
+        </RouterLink>
+      </nav>
+
+      <nav class="nav nav-section nav-section-last">
+        <span class="nav-title">Organização</span>
+        <RouterLink
+          :to="navItems[4].to"
+          class="nav-link"
+          :class="{ active: route.path === navItems[4].to }"
+        >
+          {{ navItems[4].label }}
         </RouterLink>
       </nav>
 

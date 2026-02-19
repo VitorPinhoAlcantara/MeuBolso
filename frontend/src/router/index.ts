@@ -4,6 +4,7 @@ import AppShell from '../layouts/AppShell.vue'
 import AccountsView from '../views/AccountsView.vue'
 import CategoriesView from '../views/CategoriesView.vue'
 import DashboardView from '../views/DashboardView.vue'
+import InvoicesView from '../views/InvoicesView.vue'
 import LoginView from '../views/LoginView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import RegisterView from '../views/RegisterView.vue'
@@ -23,6 +24,7 @@ const router = createRouter({
         { path: 'accounts', name: 'accounts', component: AccountsView },
         { path: 'categories', name: 'categories', component: CategoriesView },
         { path: 'transactions', name: 'transactions', component: TransactionsView },
+        { path: 'invoices', name: 'invoices', component: InvoicesView },
         { path: 'profile', name: 'profile', component: ProfileView },
       ],
     },

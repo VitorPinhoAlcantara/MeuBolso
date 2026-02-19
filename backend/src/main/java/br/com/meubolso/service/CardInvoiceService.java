@@ -5,7 +5,9 @@ import br.com.meubolso.domain.CardInvoice;
 import br.com.meubolso.domain.PaymentMethod;
 import br.com.meubolso.domain.enums.InvoiceStatus;
 import br.com.meubolso.domain.enums.PaymentMethodType;
+import br.com.meubolso.dto.CardInvoicePaymentRequest;
 import br.com.meubolso.dto.CardInvoiceResponse;
+import br.com.meubolso.repository.AccountRepository;
 import br.com.meubolso.repository.CardInvoiceRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,9 +24,12 @@ import java.util.UUID;
 @Service
 public class CardInvoiceService {
 
+    private final AccountRepository accountRepository;
     private final CardInvoiceRepository cardInvoiceRepository;
 
-    public CardInvoiceService(CardInvoiceRepository cardInvoiceRepository) {
+    public CardInvoiceService(AccountRepository accountRepository,
+                              CardInvoiceRepository cardInvoiceRepository) {
+        this.accountRepository = accountRepository;
         this.cardInvoiceRepository = cardInvoiceRepository;
     }
 
@@ -44,6 +49,58 @@ public class CardInvoiceService {
         CardInvoice invoice = cardInvoiceRepository.findByIdAndUserId(invoiceId, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fatura não encontrada"));
         return toResponse(invoice);
+    }
+
+    @Transactional
+    public CardInvoiceResponse payInvoice(UUID userId, UUID invoiceId, CardInvoicePaymentRequest request) {
+        CardInvoice invoice = cardInvoiceRepository.findByIdAndUserId(invoiceId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fatura não encontrada"));
+
+        if (invoice.getStatus() == InvoiceStatus.PAID) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Fatura já está paga");
+        }
+        if (invoice.getTotalAmount() == null || invoice.getTotalAmount().signum() <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Fatura sem valor para pagamento");
+        }
+
+        Account fromAccount = accountRepository.findById(request.getFromAccountId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conta pagadora não encontrada"));
+        if (!fromAccount.getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso negado");
+        }
+
+        accountRepository.addToBalance(fromAccount.getId(), invoice.getTotalAmount().negate());
+        invoice.setStatus(InvoiceStatus.PAID);
+        invoice.setPaidFromAccountId(fromAccount.getId());
+        invoice.setPaidAt(request.getPaymentDate() != null ? request.getPaymentDate() : LocalDate.now());
+
+        return toResponse(cardInvoiceRepository.save(invoice));
+    }
+
+    @Transactional
+    public CardInvoiceResponse cancelPayment(UUID userId, UUID invoiceId) {
+        CardInvoice invoice = cardInvoiceRepository.findByIdAndUserId(invoiceId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fatura não encontrada"));
+
+        if (invoice.getStatus() != InvoiceStatus.PAID) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Apenas faturas pagas podem ser canceladas");
+        }
+        if (invoice.getPaidFromAccountId() == null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Não há conta pagadora registrada para esta fatura");
+        }
+
+        Account paidFrom = accountRepository.findById(invoice.getPaidFromAccountId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conta pagadora não encontrada"));
+        if (!paidFrom.getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso negado");
+        }
+
+        accountRepository.addToBalance(paidFrom.getId(), invoice.getTotalAmount());
+        invoice.setStatus(InvoiceStatus.OPEN);
+        invoice.setPaidFromAccountId(null);
+        invoice.setPaidAt(null);
+
+        return toResponse(cardInvoiceRepository.save(invoice));
     }
 
     @Transactional
@@ -85,7 +142,17 @@ public class CardInvoiceService {
         if (invoiceId == null || delta == null || delta.signum() == 0) {
             return;
         }
-        cardInvoiceRepository.addToTotal(invoiceId, delta);
+        CardInvoice invoice = cardInvoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fatura não encontrada"));
+
+        if (invoice.getStatus() == InvoiceStatus.PAID && invoice.getPaidFromAccountId() != null) {
+            // Keep a paid invoice financially consistent when new expenses/incomes are posted.
+            accountRepository.addToBalance(invoice.getPaidFromAccountId(), delta.negate());
+        }
+
+        BigDecimal current = invoice.getTotalAmount() == null ? BigDecimal.ZERO : invoice.getTotalAmount();
+        invoice.setTotalAmount(current.add(delta));
+        cardInvoiceRepository.save(invoice);
     }
 
     private YearMonth resolveInvoicePeriod(LocalDate transactionDate, int closingDay) {
@@ -110,6 +177,8 @@ public class CardInvoiceService {
         response.setDueDate(invoice.getDueDate());
         response.setTotalAmount(invoice.getTotalAmount());
         response.setStatus(invoice.getStatus());
+        response.setPaidFromAccountId(invoice.getPaidFromAccountId());
+        response.setPaidAt(invoice.getPaidAt());
         response.setCreatedAt(invoice.getCreatedAt());
         response.setUpdatedAt(invoice.getUpdatedAt());
         return response;

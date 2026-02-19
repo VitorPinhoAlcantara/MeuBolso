@@ -105,7 +105,8 @@ public class TransactionService {
                 firstSaved = saved;
             }
 
-            accountRepository.addToBalance(account.getId(), balanceDelta(transactionType, installmentAmount));
+            accountRepository.addToBalance(account.getId(),
+                    accountImpact(paymentMethod.getType(), transactionType, installmentAmount));
             cardInvoiceService.addTransactionDelta(invoiceId, invoiceDelta(transactionType, installmentAmount));
         }
 
@@ -121,9 +122,15 @@ public class TransactionService {
                                                    UUID categoryId,
                                                    String query,
                                                    Pageable pageable) {
+        LocalDate effectiveFrom = from != null ? from : LocalDate.of(1970, 1, 1);
+        LocalDate effectiveTo = to != null ? to : LocalDate.of(2999, 12, 31);
+        if (effectiveFrom.isAfter(effectiveTo)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Período inválido: data inicial maior que final");
+        }
+
         String sanitizedQuery = query == null ? "" : query.trim().toLowerCase();
         Page<Transaction> page = transactionRepository.findByUserWithFilters(
-                userId, from, to, type, accountId, paymentMethodId, categoryId, sanitizedQuery, pageable);
+                userId, effectiveFrom, effectiveTo, type, accountId, paymentMethodId, categoryId, sanitizedQuery, pageable);
 
         Map<UUID, Long> attachmentsCountByTransactionId = page.getContent().isEmpty()
                 ? Map.of()
@@ -185,8 +192,10 @@ public class TransactionService {
 
         Transaction saved = transactionRepository.save(transaction);
 
-        accountRepository.addToBalance(oldAccount.getId(), balanceDelta(oldType, oldAmount).negate());
-        accountRepository.addToBalance(account.getId(), balanceDelta(transactionType, request.getAmount()));
+        accountRepository.addToBalance(oldAccount.getId(),
+                accountImpact(oldPaymentMethod.getType(), oldType, oldAmount).negate());
+        accountRepository.addToBalance(account.getId(),
+                accountImpact(paymentMethod.getType(), transactionType, request.getAmount()));
         cardInvoiceService.addTransactionDelta(oldInvoiceId, invoiceDelta(oldType, oldAmount).negate());
         cardInvoiceService.addTransactionDelta(newInvoiceId, invoiceDelta(transactionType, request.getAmount()));
 
@@ -229,6 +238,13 @@ public class TransactionService {
         return type == TransactionType.INCOME ? amount : amount.negate();
     }
 
+    private BigDecimal accountImpact(PaymentMethodType methodType, TransactionType type, BigDecimal amount) {
+        if (methodType == PaymentMethodType.CARD) {
+            return BigDecimal.ZERO;
+        }
+        return balanceDelta(type, amount);
+    }
+
     private BigDecimal invoiceDelta(TransactionType type, BigDecimal amount) {
         return type == TransactionType.EXPENSE ? amount : amount.negate();
     }
@@ -246,11 +262,12 @@ public class TransactionService {
 
     private void deleteSingleTransaction(Transaction transaction) {
         Account account = findOwnedAccount(transaction.getUserId(), transaction.getAccountId());
+        PaymentMethod paymentMethod = findOwnedPaymentMethod(transaction.getUserId(), transaction.getPaymentMethodId());
         transactionAttachmentRepository.findByTransactionIdAndUserId(transaction.getId(), transaction.getUserId())
                 .forEach(attachment -> minioStorageService.delete(attachment.getStorageKey()));
         transactionAttachmentRepository.deleteByTransactionId(transaction.getId());
         accountRepository.addToBalance(account.getId(),
-                balanceDelta(transaction.getType(), transaction.getAmount()).negate());
+                accountImpact(paymentMethod.getType(), transaction.getType(), transaction.getAmount()).negate());
         cardInvoiceService.addTransactionDelta(transaction.getInvoiceId(),
                 invoiceDelta(transaction.getType(), transaction.getAmount()).negate());
         transactionRepository.delete(transaction);

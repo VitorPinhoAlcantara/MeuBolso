@@ -31,8 +31,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
           join PaymentMethod pm on pm.id = t.paymentMethodId
           join Category c on c.id = t.categoryId
           where t.userId = :userId
-            and (:from is null or t.transactionDate >= :from)
-            and (:to is null or t.transactionDate <= :to)
+            and t.transactionDate >= :from
+            and t.transactionDate <= :to
             and (:type is null or t.type = :type)
             and (:accountId is null or t.accountId = :accountId)
             and (:paymentMethodId is null or t.paymentMethodId = :paymentMethodId)

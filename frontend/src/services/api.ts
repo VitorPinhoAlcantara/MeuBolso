@@ -37,6 +37,13 @@ const refreshAccessToken = async () => {
       const newAccessToken = response.data.accessToken as string
       const newRefreshToken = response.data.refreshToken as string
 
+      if (!newAccessToken || newAccessToken === 'undefined' || newAccessToken === 'null') {
+        throw new Error('Access token inválido no refresh')
+      }
+      if (!newRefreshToken || newRefreshToken === 'undefined' || newRefreshToken === 'null') {
+        throw new Error('Refresh token inválido no refresh')
+      }
+
       localStorage.setItem('accessToken', newAccessToken)
       localStorage.setItem('refreshToken', newRefreshToken)
 
@@ -55,8 +62,10 @@ api.interceptors.request.use((config) => {
   }
 
   const token = localStorage.getItem('accessToken')
-  if (token) {
+  if (token && token !== 'undefined' && token !== 'null') {
     config.headers.Authorization = `Bearer ${token}`
+  } else if (config.headers?.Authorization) {
+    delete config.headers.Authorization
   }
   return config
 })

@@ -2,6 +2,7 @@
 import axios from 'axios'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { Download, Eye, Pencil, UploadCloud, X } from 'lucide-vue-next'
+import { useRoute } from 'vue-router'
 import BaseConfirmModal from '../components/BaseConfirmModal.vue'
 import { useToast } from '../composables/useToast'
 import { api } from '../services/api'
@@ -61,6 +62,7 @@ type PageResponse<T> = {
 const loading = ref(false)
 const saving = ref(false)
 const toast = useToast()
+const route = useRoute()
 
 const items = ref<Transaction[]>([])
 const page = ref(0)
@@ -129,8 +131,16 @@ const filteredMethods = computed(() =>
 )
 
 const accountNameById = (id: string) => accounts.value.find((a) => a.id === id)?.name ?? id.slice(0, 8)
-const paymentMethodNameById = (id: string) => paymentMethods.value.find((m) => m.id === id)?.name ?? id.slice(0, 8)
+const paymentMethodNameById = (id: string) => {
+  const method = paymentMethods.value.find((m) => m.id === id)
+  return method ? paymentMethodDisplayName(method) : id.slice(0, 8)
+}
 const categoryNameById = (id: string) => categories.value.find((c) => c.id === id)?.name ?? id.slice(0, 8)
+const paymentMethodDisplayName = (method: { name: string; accountName?: string }) => {
+  if (!method.accountName) return method.name
+  const prefix = `${method.accountName} - `
+  return method.name.startsWith(prefix) ? method.name.slice(prefix.length) : method.name
+}
 
 const resetForm = () => {
   editingId.value = null
@@ -393,6 +403,8 @@ const loadCategories = async () => {
 
 const loadTransactions = async (targetPage = 0) => {
   loading.value = true
+  const from = normalizeDateParam(filters.from)
+  const to = normalizeDateParam(filters.to)
 
   try {
     const response = await api.get<PageResponse<Transaction>>('/api/v1/transactions', {
@@ -400,8 +412,8 @@ const loadTransactions = async (targetPage = 0) => {
         page: targetPage,
         size: 10,
         sort: 'transactionDate,desc',
-        from: filters.from || undefined,
-        to: filters.to || undefined,
+        from,
+        to,
         type: filters.type || undefined,
         accountId: filters.accountId || undefined,
         paymentMethodId: filters.paymentMethodId || undefined,
@@ -413,8 +425,12 @@ const loadTransactions = async (targetPage = 0) => {
     items.value = response.data.content
     page.value = response.data.number
     totalPages.value = response.data.totalPages
-  } catch {
-    toast.error('Não foi possível carregar as transações.')
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      toast.error(err.response?.data?.error ?? 'Não foi possível carregar as transações.')
+    } else {
+      toast.error('Não foi possível carregar as transações.')
+    }
   } finally {
     loading.value = false
   }
@@ -425,6 +441,20 @@ const toInputDate = (date: Date) => {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+const normalizeDateParam = (value: string) => {
+  const raw = value?.trim()
+  if (!raw) return undefined
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+
+  const brMatch = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (brMatch) {
+    const [, day, month, year] = brMatch
+    return `${year}-${month}-${day}`
+  }
+
+  return undefined
 }
 
 const applyDatePreset = () => {
@@ -458,6 +488,34 @@ const applyDatePreset = () => {
     filters.from = toInputDate(from)
     filters.to = toInputDate(today)
     return
+  }
+}
+
+const hydrateFiltersFromQuery = () => {
+  const query = route.query
+  const queryString = (value: unknown) => (typeof value === 'string' ? value : '')
+
+  const accountId = queryString(query.accountId)
+  const paymentMethodId = queryString(query.paymentMethodId)
+  const categoryId = queryString(query.categoryId)
+  const type = queryString(query.type)
+  const from = queryString(query.from)
+  const to = queryString(query.to)
+  const q = queryString(query.q)
+  const datePreset = queryString(query.datePreset)
+
+  if (accountId) filters.accountId = accountId
+  if (paymentMethodId) filters.paymentMethodId = paymentMethodId
+  if (categoryId) filters.categoryId = categoryId
+  if (type === 'INCOME' || type === 'EXPENSE') filters.type = type
+  if (from) filters.from = normalizeDateParam(from) ?? ''
+  if (to) filters.to = normalizeDateParam(to) ?? ''
+  if (q) filters.query = q
+
+  if (datePreset === 'ALL' || datePreset === 'THIS_MONTH' || datePreset === 'LAST_7_DAYS' || datePreset === 'LAST_30_DAYS' || datePreset === 'CUSTOM') {
+    filters.datePreset = datePreset
+  } else if (from || to) {
+    filters.datePreset = 'CUSTOM'
   }
 }
 
@@ -533,6 +591,7 @@ const confirmDelete = async () => {
 onMounted(async () => {
   try {
     applyDatePreset()
+    hydrateFiltersFromQuery()
     await Promise.all([loadAccounts(), loadCategories()])
     await loadTransactions()
   } catch {
@@ -560,7 +619,7 @@ onMounted(async () => {
       <select v-model="filters.paymentMethodId">
         <option value="">Método (todos)</option>
         <option v-for="method in paymentMethods" :key="method.id" :value="method.id">
-          {{ method.accountName }} - {{ method.name }}
+          {{ paymentMethodDisplayName(method) }}
         </option>
       </select>
       <select v-model="filters.type">
@@ -681,7 +740,7 @@ onMounted(async () => {
               <select v-model="form.paymentMethodId" required>
                 <option value="" disabled>Selecione</option>
                 <option v-for="method in filteredMethods" :key="method.id" :value="method.id">
-                  {{ method.accountName }} - {{ method.name }}
+                  {{ paymentMethodDisplayName(method) }}
                 </option>
               </select>
             </label>

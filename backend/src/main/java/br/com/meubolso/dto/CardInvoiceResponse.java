@@ -19,6 +19,8 @@ public class CardInvoiceResponse {
     private LocalDate dueDate;
     private BigDecimal totalAmount;
     private InvoiceStatus status;
+    private UUID paidFromAccountId;
+    private LocalDate paidAt;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
@@ -100,6 +102,22 @@ public class CardInvoiceResponse {
 
     public void setStatus(InvoiceStatus status) {
         this.status = status;
+    }
+
+    public UUID getPaidFromAccountId() {
+        return paidFromAccountId;
+    }
+
+    public void setPaidFromAccountId(UUID paidFromAccountId) {
+        this.paidFromAccountId = paidFromAccountId;
+    }
+
+    public LocalDate getPaidAt() {
+        return paidAt;
+    }
+
+    public void setPaidAt(LocalDate paidAt) {
+        this.paidAt = paidAt;
     }
 
     public OffsetDateTime getCreatedAt() {

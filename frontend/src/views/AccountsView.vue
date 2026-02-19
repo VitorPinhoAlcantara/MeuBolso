@@ -495,7 +495,15 @@ onMounted(() => {
 
 .actions {
   display: flex;
+  align-items: center;
+  gap: 8px;
   justify-content: flex-end;
+}
+
+.btn-sm {
+  height: 34px;
+  padding: 0 10px;
+  font-size: 13px;
 }
 
 .pager {
