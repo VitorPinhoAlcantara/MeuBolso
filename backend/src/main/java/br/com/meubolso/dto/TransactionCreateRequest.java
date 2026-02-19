@@ -36,6 +36,10 @@ public class TransactionCreateRequest {
     @Max(120)
     private Integer installments;
 
+    @Min(1)
+    @Max(120)
+    private Integer currentInstallmentNumber;
+
     private LocalDate firstInstallmentDate;
 
     @Size(max = 255)
@@ -103,6 +107,14 @@ public class TransactionCreateRequest {
 
     public void setInstallments(Integer installments) {
         this.installments = installments;
+    }
+
+    public Integer getCurrentInstallmentNumber() {
+        return currentInstallmentNumber;
+    }
+
+    public void setCurrentInstallmentNumber(Integer currentInstallmentNumber) {
+        this.currentInstallmentNumber = currentInstallmentNumber;
     }
 
     public LocalDate getFirstInstallmentDate() {

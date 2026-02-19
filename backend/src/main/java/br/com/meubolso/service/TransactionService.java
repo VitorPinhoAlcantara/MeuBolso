@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -69,19 +68,29 @@ public class TransactionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Parcelamento está disponível apenas para método do tipo CARD");
         }
+        int currentInstallment = request.getCurrentInstallmentNumber() == null
+                ? 1
+                : request.getCurrentInstallmentNumber();
+        if (currentInstallment < 1 || currentInstallment > installments) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Parcela atual inválida para o total de parcelas informado");
+        }
 
         LocalDate firstInstallmentDate = request.getFirstInstallmentDate() == null
                 ? request.getDate()
                 : request.getFirstInstallmentDate();
         LocalDate purchaseDate = request.getPurchaseDate() == null ? request.getDate() : request.getPurchaseDate();
+        if (installments > 1 && request.getFirstInstallmentDate() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Informe a data inicial da compra parcelada");
+        }
 
         UUID installmentGroupId = installments > 1 ? UUID.randomUUID() : null;
-        List<BigDecimal> installmentValues = splitInstallments(request.getAmount(), installments);
 
         Transaction firstSaved = null;
-        for (int i = 0; i < installments; i++) {
-            LocalDate installmentDate = firstInstallmentDate.plusMonths(i);
-            BigDecimal installmentAmount = installmentValues.get(i);
+        for (int installmentNumber = currentInstallment; installmentNumber <= installments; installmentNumber++) {
+            LocalDate installmentDate = firstInstallmentDate.plusMonths(installmentNumber - 1L);
+            BigDecimal installmentAmount = request.getAmount();
             UUID invoiceId = cardInvoiceService.resolveInvoiceIdForTransaction(
                     userId, account, paymentMethod, installmentDate);
 
@@ -95,7 +104,7 @@ public class TransactionService {
             transaction.setTransactionDate(installmentDate);
             transaction.setPurchaseDate(purchaseDate);
             transaction.setInstallmentGroupId(installmentGroupId);
-            transaction.setInstallmentNumber(i + 1);
+            transaction.setInstallmentNumber(installmentNumber);
             transaction.setInstallmentTotal(installments);
             transaction.setInvoiceId(invoiceId);
             transaction.setDescription(request.getDescription());
@@ -154,10 +163,6 @@ public class TransactionService {
     @Transactional
     public TransactionResponse update(UUID userId, UUID transactionId, TransactionCreateRequest request) {
         Transaction transaction = findOwnedTransaction(userId, transactionId);
-        if (transaction.getInstallmentTotal() != null && transaction.getInstallmentTotal() > 1) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Atualização de transação parcelada ainda não é suportada");
-        }
         if (request.getInstallments() != null && request.getInstallments() > 1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Use criação de nova transação para parcelamento");
@@ -247,17 +252,6 @@ public class TransactionService {
 
     private BigDecimal invoiceDelta(TransactionType type, BigDecimal amount) {
         return type == TransactionType.EXPENSE ? amount : amount.negate();
-    }
-
-    private List<BigDecimal> splitInstallments(BigDecimal totalAmount, int installments) {
-        BigDecimal perInstallment = totalAmount
-                .divide(BigDecimal.valueOf(installments), 2, RoundingMode.DOWN);
-        BigDecimal consumed = perInstallment.multiply(BigDecimal.valueOf(installments));
-        BigDecimal remainder = totalAmount.subtract(consumed);
-
-        return java.util.stream.IntStream.range(0, installments)
-                .mapToObj(i -> i == installments - 1 ? perInstallment.add(remainder) : perInstallment)
-                .toList();
     }
 
     private void deleteSingleTransaction(Transaction transaction) {

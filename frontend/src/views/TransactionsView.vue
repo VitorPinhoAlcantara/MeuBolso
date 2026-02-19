@@ -40,6 +40,8 @@ type Transaction = {
   type: TransactionType
   amount: number
   date: string
+  installmentNumber?: number
+  installmentTotal?: number
   description: string
   attachmentsCount?: number
 }
@@ -111,6 +113,10 @@ const form = reactive({
   type: 'EXPENSE' as TransactionType,
   amount: '',
   date: new Date().toISOString().slice(0, 10),
+  isInstallment: false,
+  installments: '2',
+  currentInstallmentNumber: '1',
+  firstInstallmentDate: new Date().toISOString().slice(0, 10),
   description: '',
 })
 
@@ -128,6 +134,13 @@ const modalTitle = computed(() => (editingId.value ? 'Editar transação' : 'Nov
 const filteredCategories = computed(() => categories.value.filter((c) => c.type === form.type))
 const filteredMethods = computed(() =>
   paymentMethods.value.filter((method) => !form.accountId || method.accountId === form.accountId),
+)
+const selectedPaymentMethod = computed(() =>
+  paymentMethods.value.find((method) => method.id === form.paymentMethodId),
+)
+const isCardMethodSelected = computed(() => selectedPaymentMethod.value?.type === 'CARD')
+const showInstallmentFields = computed(
+  () => !editingId.value && isCardMethodSelected.value && form.isInstallment,
 )
 
 const accountNameById = (id: string) => accounts.value.find((a) => a.id === id)?.name ?? id.slice(0, 8)
@@ -150,6 +163,10 @@ const resetForm = () => {
   form.type = 'EXPENSE'
   form.amount = ''
   form.date = new Date().toISOString().slice(0, 10)
+  form.isInstallment = false
+  form.installments = '2'
+  form.currentInstallmentNumber = '1'
+  form.firstInstallmentDate = new Date().toISOString().slice(0, 10)
   form.description = ''
   attachments.value = []
   selectedAttachment.value = null
@@ -169,7 +186,26 @@ const onAccountChange = () => {
   const selected = paymentMethods.value.find((method) => method.id === form.paymentMethodId)
   if (!selected || selected.accountId !== form.accountId) {
     form.paymentMethodId = ''
+    form.isInstallment = false
   }
+}
+
+const onPaymentMethodChange = () => {
+  if (!isCardMethodSelected.value) {
+    form.isInstallment = false
+  }
+}
+
+const normalizeInstallmentFields = () => {
+  const total = Number.parseInt(form.installments || '1', 10)
+  const safeTotal = Number.isFinite(total) ? Math.min(Math.max(total, 1), 120) : 1
+  form.installments = String(safeTotal)
+
+  const current = Number.parseInt(form.currentInstallmentNumber || '1', 10)
+  const safeCurrent = Number.isFinite(current)
+    ? Math.min(Math.max(current, 1), safeTotal)
+    : 1
+  form.currentInstallmentNumber = String(safeCurrent)
 }
 
 const openCreateModal = () => {
@@ -219,6 +255,10 @@ const openEditModal = async (item: Transaction) => {
   form.type = item.type
   form.amount = String(item.amount)
   form.date = item.date
+  form.isInstallment = false
+  form.installments = item.installmentTotal ? String(item.installmentTotal) : '2'
+  form.currentInstallmentNumber = item.installmentNumber ? String(item.installmentNumber) : '1'
+  form.firstInstallmentDate = item.date
   form.description = item.description ?? ''
   selectedAttachment.value = null
   showFormModal.value = true
@@ -523,13 +563,33 @@ const submit = async () => {
   saving.value = true
 
   try {
+    normalizeInstallmentFields()
+
+    const installments = showInstallmentFields.value
+      ? Number.parseInt(form.installments, 10)
+      : 1
+    const currentInstallmentNumber = showInstallmentFields.value
+      ? Number.parseInt(form.currentInstallmentNumber, 10)
+      : 1
+
+    const installmentDate = showInstallmentFields.value
+      ? (() => {
+          const start = new Date(`${form.firstInstallmentDate}T00:00:00`)
+          start.setMonth(start.getMonth() + (currentInstallmentNumber - 1))
+          return toInputDate(start)
+        })()
+      : form.date
+
     const payload = {
       accountId: form.accountId || undefined,
       paymentMethodId: form.paymentMethodId,
       categoryId: form.categoryId,
       type: form.type,
       amount: Number(form.amount),
-      date: form.date,
+      date: installmentDate,
+      installments,
+      currentInstallmentNumber,
+      firstInstallmentDate: showInstallmentFields.value ? form.firstInstallmentDate : undefined,
       description: form.description || null,
     }
 
@@ -658,6 +718,7 @@ onMounted(async () => {
           <th>Método</th>
           <th>Categoria</th>
           <th>Valor</th>
+          <th>Parcela</th>
           <th>Descrição</th>
           <th>Docs</th>
           <th></th>
@@ -672,6 +733,13 @@ onMounted(async () => {
           <td>{{ categoryNameById(item.categoryId) }}</td>
           <td :class="item.type === 'EXPENSE' ? 'amount-expense' : 'amount-income'">
             R$ {{ Number(item.amount).toFixed(2) }}
+          </td>
+          <td>
+            {{
+              item.installmentTotal && item.installmentTotal > 1
+                ? `${item.installmentNumber ?? 1}/${item.installmentTotal}`
+                : '-'
+            }}
           </td>
           <td>{{ item.description || '-' }}</td>
           <td>
@@ -737,12 +805,46 @@ onMounted(async () => {
 
             <label class="field">
               <span>Método de pagamento</span>
-              <select v-model="form.paymentMethodId" required>
+              <select v-model="form.paymentMethodId" required @change="onPaymentMethodChange">
                 <option value="" disabled>Selecione</option>
                 <option v-for="method in filteredMethods" :key="method.id" :value="method.id">
                   {{ paymentMethodDisplayName(method) }}
                 </option>
               </select>
+            </label>
+          </div>
+
+          <div v-if="!editingId && isCardMethodSelected" class="field field-inline">
+            <label class="toggle">
+              <input v-model="form.isInstallment" type="checkbox" />
+              <span>Compra parcelada</span>
+            </label>
+          </div>
+
+          <div v-if="showInstallmentFields" class="form-row">
+            <label class="field">
+              <span>Total de parcelas</span>
+              <input
+                v-model="form.installments"
+                type="number"
+                min="2"
+                max="120"
+                step="1"
+                @change="normalizeInstallmentFields"
+                required
+              />
+            </label>
+            <label class="field">
+              <span>Parcela atual</span>
+              <input
+                v-model="form.currentInstallmentNumber"
+                type="number"
+                min="1"
+                :max="form.installments || '120'"
+                step="1"
+                @change="normalizeInstallmentFields"
+                required
+              />
             </label>
           </div>
 
@@ -758,13 +860,17 @@ onMounted(async () => {
             </label>
 
             <label class="field">
-              <span>Data</span>
-              <input v-model="form.date" type="date" required />
+              <span>{{ showInstallmentFields ? 'Data inicial da compra' : 'Data' }}</span>
+              <input v-if="showInstallmentFields" v-model="form.firstInstallmentDate" type="date" required />
+              <input v-else v-model="form.date" type="date" required />
             </label>
           </div>
 
           <label class="field">
-            <span>Valor</span>
+            <span>
+              Valor
+              <small v-if="showInstallmentFields" class="field-help">(valor por parcela)</small>
+            </span>
             <input v-model="form.amount" type="number" min="0.01" step="0.01" required />
           </label>
 
@@ -898,6 +1004,16 @@ onMounted(async () => {
           <div>
             <dt>Data</dt>
             <dd>{{ new Date(selectedView.date + 'T00:00:00').toLocaleDateString('pt-BR') }}</dd>
+          </div>
+          <div>
+            <dt>Parcela</dt>
+            <dd>
+              {{
+                selectedView.installmentTotal && selectedView.installmentTotal > 1
+                  ? `${selectedView.installmentNumber ?? 1}/${selectedView.installmentTotal}`
+                  : '-'
+              }}
+            </dd>
           </div>
           <div>
             <dt>Tipo</dt>
@@ -1127,9 +1243,27 @@ onMounted(async () => {
   gap: 6px;
 }
 
+.field-inline {
+  display: block;
+}
+
 .field span {
   font-size: 14px;
   color: var(--text);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.toggle input {
+  width: 16px;
+  height: 16px;
 }
 
 .field input,
