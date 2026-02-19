@@ -65,4 +65,23 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
                                                                     LocalDate endDate,
                                                                     TransactionType type);
 
+  @Query("""
+          select
+              t.accountId as accountId,
+              a.name as accountName,
+              coalesce(sum(t.amount), 0) as total
+          from Transaction t
+          join Account a on a.id = t.accountId
+          where t.userId = :userId
+            and t.type = :type
+            and t.transactionDate >= :startDate
+            and t.transactionDate <= :endDate
+          group by t.accountId, a.name
+          order by coalesce(sum(t.amount), 0) desc
+          """)
+  java.util.List<ExpenseByAccountProjection> sumExpensesByAccount(UUID userId,
+                                                                  LocalDate startDate,
+                                                                  LocalDate endDate,
+                                                                  TransactionType type);
+
 }

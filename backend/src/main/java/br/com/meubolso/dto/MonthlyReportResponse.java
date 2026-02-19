@@ -11,6 +11,7 @@ public class MonthlyReportResponse {
     private BigDecimal totalIncome;
     private BigDecimal totalExpense;
     private BigDecimal net;
+    private List<ExpenseByAccountItem> expensesByAccount;
     private List<ExpenseByCategoryItem> expensesByCategory;
 
     public int getYear() {
@@ -51,6 +52,14 @@ public class MonthlyReportResponse {
 
     public void setNet(BigDecimal net) {
         this.net = net;
+    }
+
+    public List<ExpenseByAccountItem> getExpensesByAccount() {
+        return expensesByAccount;
+    }
+
+    public void setExpensesByAccount(List<ExpenseByAccountItem> expensesByAccount) {
+        this.expensesByAccount = expensesByAccount;
     }
 
     public List<ExpenseByCategoryItem> getExpensesByCategory() {

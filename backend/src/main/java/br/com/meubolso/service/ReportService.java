@@ -1,6 +1,7 @@
 package br.com.meubolso.service;
 
 import br.com.meubolso.domain.enums.TransactionType;
+import br.com.meubolso.dto.ExpenseByAccountItem;
 import br.com.meubolso.dto.ExpenseByCategoryItem;
 import br.com.meubolso.dto.MonthlyReportResponse;
 import br.com.meubolso.repository.TransactionRepository;
@@ -36,6 +37,18 @@ public class ReportService {
 
         BigDecimal net = totalIncome.subtract(totalExpense);
 
+        List<ExpenseByAccountItem> expensesByAccount = transactionRepository
+                .sumExpensesByAccount(userId, startDate, endDate, TransactionType.EXPENSE)
+                .stream()
+                .map(p -> {
+                    ExpenseByAccountItem item = new ExpenseByAccountItem();
+                    item.setAccountId(p.getAccountId());
+                    item.setAccountName(p.getAccountName());
+                    item.setTotal(p.getTotal());
+                    return item;
+                })
+                .toList();
+
         List<ExpenseByCategoryItem> expensesByCategory = transactionRepository
                 .sumExpensesByCategory(userId, startDate, endDate, TransactionType.EXPENSE)
                 .stream()
@@ -55,6 +68,7 @@ public class ReportService {
         response.setTotalIncome(totalIncome);
         response.setTotalExpense(totalExpense);
         response.setNet(net);
+        response.setExpensesByAccount(expensesByAccount);
         response.setExpensesByCategory(expensesByCategory);
 
         return response;
