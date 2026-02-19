@@ -13,7 +13,6 @@ type Account = {
   id: string
   name: string
   type: AccountType
-  currency: string
   balance: number
   createdAt: string
 }
@@ -50,18 +49,20 @@ const editingId = ref<string | null>(null)
 const form = reactive({
   name: '',
   type: 'BANK' as AccountType,
-  currency: 'BRL',
   balance: '0.00',
 })
 
 const submitLabel = computed(() => (editingId.value ? 'Salvar alterações' : 'Criar conta'))
 const modalTitle = computed(() => (editingId.value ? 'Editar conta' : 'Nova conta'))
 
-const formatMoney = (value: number) =>
-  new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
+const formatMoney = (value: number) => {
+  const amount = new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(Number(value ?? 0))
+
+  return `$ ${amount}`
+}
 
 const loadAccounts = async (targetPage = 0) => {
   loading.value = true
@@ -88,7 +89,6 @@ const openCreateModal = () => {
   editingId.value = null
   form.name = ''
   form.type = 'BANK'
-  form.currency = 'BRL'
   form.balance = '0.00'
   showFormModal.value = true
 }
@@ -97,7 +97,6 @@ const openEditModal = (item: Account) => {
   editingId.value = item.id
   form.name = item.name
   form.type = item.type
-  form.currency = item.currency
   form.balance = Number(item.balance ?? 0).toFixed(2)
   showFormModal.value = true
 }
@@ -113,7 +112,7 @@ const submit = async () => {
     const payload = {
       name: form.name,
       type: form.type,
-      currency: (form.currency || 'BRL').toUpperCase(),
+      currency: 'BRL',
       balance: Number(form.balance || 0),
     }
 
@@ -185,7 +184,6 @@ onMounted(() => {
         <tr>
           <th>Nome</th>
           <th>Tipo</th>
-          <th>Moeda</th>
           <th>Saldo</th>
           <th></th>
         </tr>
@@ -194,7 +192,6 @@ onMounted(() => {
         <tr v-for="item in items" :key="item.id">
           <td>{{ item.name }}</td>
           <td>{{ accountTypeLabel[item.type] ?? item.type }}</td>
-          <td>{{ item.currency }}</td>
           <td>{{ formatMoney(item.balance) }}</td>
           <td class="actions">
             <RowActionButtons
@@ -233,11 +230,6 @@ onMounted(() => {
                 {{ option.label }}
               </option>
             </select>
-          </label>
-
-          <label class="field">
-            <span>Moeda</span>
-            <input v-model.trim="form.currency" type="text" minlength="3" maxlength="3" required />
           </label>
 
           <label class="field">

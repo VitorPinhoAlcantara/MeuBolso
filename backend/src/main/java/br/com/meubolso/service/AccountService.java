@@ -18,6 +18,8 @@ import java.util.UUID;
 @Service
 public class AccountService {
 
+    private static final String DEFAULT_CURRENCY = "BRL";
+
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
 
@@ -32,7 +34,7 @@ public class AccountService {
         account.setUserId(userId);
         account.setName(request.getName());
         account.setType(request.getType());
-        account.setCurrency(request.getCurrency() == null ? "BRL" : request.getCurrency());
+        account.setCurrency(DEFAULT_CURRENCY);
         account.setBalance(request.getBalance() == null ? BigDecimal.ZERO : request.getBalance());
 
         Account saved = accountRepository.save(account);
@@ -68,7 +70,7 @@ public class AccountService {
 
         account.setName(request.getName());
         account.setType(request.getType());
-        account.setCurrency(request.getCurrency() == null ? "BRL" : request.getCurrency());
+        account.setCurrency(DEFAULT_CURRENCY);
         account.setBalance(request.getBalance() == null ? BigDecimal.ZERO : request.getBalance());
 
         Account saved = accountRepository.save(account);
