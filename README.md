@@ -1,128 +1,104 @@
 # MeuBolso
 
-Seu controle de financas pessoais, simples e completo.
+MeuBolso e uma aplicacao de controle financeiro pessoal em formato monorepo, com:
+- backend em Spring Boot (API REST + autenticacao JWT + anexos com MinIO)
+- frontend em Vue 3 (painel web para uso diario)
 
-API REST para contas, categorias, transacoes e relatorio mensal.
+## Versao
+- Projeto: `1.0`
+- Backend: `backend/pom.xml`
+- Frontend: `frontend/package.json`
 
-## Stack
+## O que o projeto ja faz
+- cadastro e login de usuario (JWT access + refresh token)
+- endpoint `/api/v1/auth/me` para dados do usuario logado
+- CRUD de contas
+- CRUD de categorias
+- CRUD de transacoes
+- filtros de transacoes por conta, tipo, categoria, periodo e busca textual
+- anexos em transacoes (upload, listagem, preview, download e exclusao)
+- dashboard mensal com:
+  - resumo de receitas, despesas e saldo
+  - saldo por conta
+  - despesas por conta
+  - despesas por categoria
+
+## Estrutura do repositorio
+- `backend/`: API Spring Boot, regras de negocio, persistencia, migracoes Flyway
+- `frontend/`: aplicacao Vue com autenticacao, dashboard e modulos de gestao
+
+## Como rodar (basico)
+Prerequisitos:
 - Java 21
-- Spring Boot 3
-- Spring Security + JWT (access e refresh token)
-- Spring Data JPA + PostgreSQL
-- Flyway
-- Springdoc OpenAPI (Swagger)
-- JUnit 5 + Mockito
+- Node 20+
+- Docker + Docker Compose
 
-## Como rodar
-1. Suba o banco:
+1. Suba infraestrutura do backend (PostgreSQL e MinIO):
 ```bash
+cd backend
 docker compose up -d
 ```
 
-2. Rode a aplicacao:
+2. Rode a API:
 ```bash
 ./mvnw spring-boot:run
 ```
 
-3. Acesse:
+3. Em outro terminal, rode o frontend:
+```bash
+cd ../frontend
+npm install
+npm run dev
+```
+
+4. Acessos:
+- Frontend: `http://localhost:5173`
 - API: `http://localhost:4444`
-- Swagger UI: `http://localhost:4444/swagger-ui/index.html`
+- Swagger: `http://localhost:4444/swagger-ui/index.html`
 
-## Variaveis de ambiente
+## Release 1.0 com Docker (stack completa)
+Para subir tudo em um unico comando (frontend + backend + PostgreSQL + MinIO):
+
+1. (Opcional, recomendado) crie `.env` na raiz:
+```bash
+cp .env.example .env
+```
+
+```bash
+docker compose up -d --build
+```
+
+Acessos:
+- App (frontend): `http://localhost:8080`
+- API (via frontend proxy): `http://localhost:8080/api`
+- Swagger (via frontend proxy): `http://localhost:8080/swagger-ui/index.html`
+- PostgreSQL (externo): `localhost:5432`
+
+Portas customizadas no seu ambiente:
+- `FRONTEND_PORT` para a porta externa do frontend
+- `POSTGRES_PORT` para a porta externa do PostgreSQL
+
+Exemplo:
+```bash
+FRONTEND_PORT=3000 POSTGRES_PORT=55432 docker compose up -d --build
+```
+
+Ou via arquivo `.env` na raiz:
 ```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=meubolso
-DB_USER=meubolso
-DB_PASSWORD=meubolso
-JWT_SECRET=change-me-in-env-change-me-in-env-123456
-JWT_ACCESS_TTL_MIN=15
-JWT_REFRESH_TTL_DAYS=7
-SERVER_PORT=4444
+FRONTEND_PORT=3000
+POSTGRES_PORT=55432
 ```
 
-## Fluxo rapido de autenticacao (curl)
-Registrar usuario:
+Parar stack:
 ```bash
-curl -X POST http://localhost:4444/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@meubolso.com","password":"123456"}'
+docker compose down
 ```
 
-Login:
+Parar e remover volumes:
 ```bash
-curl -X POST http://localhost:4444/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@meubolso.com","password":"123456"}'
+docker compose down -v
 ```
 
-Resposta de login/register:
-```json
-{
-  "accessToken": "...",
-  "refreshToken": "...",
-  "tokenType": "Bearer"
-}
-```
-
-Use o access token:
-```bash
-curl http://localhost:4444/api/v1/accounts \
-  -H "Authorization: Bearer SEU_ACCESS_TOKEN"
-```
-
-Refresh:
-```bash
-curl -X POST http://localhost:4444/api/v1/auth/refresh \
-  -H "Content-Type: application/json" \
-  -d '{"refreshToken":"SEU_REFRESH_TOKEN"}'
-```
-
-Logout (revoga refresh token):
-```bash
-curl -X POST http://localhost:4444/api/v1/auth/logout \
-  -H "Content-Type: application/json" \
-  -d '{"refreshToken":"SEU_REFRESH_TOKEN"}'
-```
-
-## Endpoints principais
-Auth:
-- `POST /api/v1/auth/register`
-- `POST /api/v1/auth/login`
-- `POST /api/v1/auth/refresh`
-- `POST /api/v1/auth/logout`
-
-Accounts:
-- `GET /api/v1/accounts?page=0&size=20&sort=createdAt,desc&type=BANK`
-- `POST /api/v1/accounts`
-- `GET /api/v1/accounts/{id}`
-- `PUT /api/v1/accounts/{id}`
-- `DELETE /api/v1/accounts/{id}`
-
-Categories:
-- `GET /api/v1/categories?page=0&size=20&sort=createdAt,desc&type=EXPENSE`
-- `POST /api/v1/categories`
-- `GET /api/v1/categories/{id}`
-- `PUT /api/v1/categories/{id}`
-- `DELETE /api/v1/categories/{id}`
-
-Transactions:
-- `GET /api/v1/transactions?page=0&size=20&sort=transactionDate,desc&from=2026-02-01&to=2026-02-28&type=EXPENSE&accountId=&categoryId=`
-- `POST /api/v1/transactions`
-- `GET /api/v1/transactions/{id}`
-- `PUT /api/v1/transactions/{id}`
-- `DELETE /api/v1/transactions/{id}`
-
-Reports:
-- `GET /api/v1/reports/monthly?year=2026&month=2`
-
-## Regras importantes
-- Cada usuario so acessa os proprios dados.
-- `amount` de transacao deve ser maior que zero.
-- Tipo de categoria deve ser compativel com tipo da transacao.
-- Nao e permitido deletar conta/categoria com transacoes vinculadas (`409 Conflict`).
-
-## Testes
-```bash
-./mvnw test
-```
+## Documentacao por modulo
+- Backend: `backend/README.md`
+- Frontend: `frontend/README.md`

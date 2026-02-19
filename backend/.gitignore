@@ -1,0 +1,11 @@
+# Backend (Spring Boot / Maven)
+target/
+
+# Local logs
+*.log
+logs/
+
+# Local env overrides
+.env
+.env.*
+!.env.example

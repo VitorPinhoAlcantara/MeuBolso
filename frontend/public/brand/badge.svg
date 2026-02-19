@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <defs>
+    <linearGradient id="badgeBg" x1="44" y1="40" x2="212" y2="216" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EEF4FF" />
+      <stop offset="1" stop-color="#DDE9FF" />
+    </linearGradient>
+  </defs>
+
+  <circle cx="128" cy="128" r="104" fill="url(#badgeBg)" />
+  <circle cx="128" cy="128" r="104" stroke="#BFD3FF" stroke-width="8" />
+
+  <rect
+    x="62"
+    y="86"
+    width="132"
+    height="88"
+    rx="16"
+    stroke="#1E6BFF"
+    stroke-width="12"
+  />
+  <path d="M62 118h132" stroke="#1E6BFF" stroke-width="12" stroke-linecap="round" />
+  <path
+    d="M100 142l14 14 34-38"
+    stroke="#1E6BFF"
+    stroke-width="12"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>
