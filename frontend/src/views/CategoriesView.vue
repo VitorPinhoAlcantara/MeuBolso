@@ -203,7 +203,10 @@ watch(
     <div v-else class="split-grid">
       <article class="type-column">
         <h4>Despesas</h4>
-        <p v-if="!expenseItems.length" class="muted">Nenhuma categoria de despesa.</p>
+        <div v-if="!expenseItems.length" class="empty-state">
+          <img src="/brand/badge.svg" alt="MeuBolso" />
+          <p>Nenhuma categoria de despesa.</p>
+        </div>
         <table v-else class="table">
           <thead>
             <tr>
@@ -234,7 +237,10 @@ watch(
 
       <article class="type-column">
         <h4>Receitas</h4>
-        <p v-if="!incomeItems.length" class="muted">Nenhuma categoria de receita.</p>
+        <div v-if="!incomeItems.length" class="empty-state">
+          <img src="/brand/badge.svg" alt="MeuBolso" />
+          <p>Nenhuma categoria de receita.</p>
+        </div>
         <table v-else class="table">
           <thead>
             <tr>
@@ -392,6 +398,29 @@ watch(
 .muted {
   color: var(--muted);
   margin-top: 10px;
+}
+
+.empty-state {
+  margin-top: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--muted);
+  padding: 12px;
+}
+
+.empty-state img {
+  width: 42px;
+  height: 42px;
+  opacity: 0.9;
+}
+
+.empty-state p {
+  margin: 0;
 }
 
 .modal-backdrop {

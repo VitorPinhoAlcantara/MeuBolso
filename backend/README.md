@@ -27,6 +27,8 @@ docker compose up -d
 3. Acesse:
 - API: `http://localhost:4444`
 - Swagger UI: `http://localhost:4444/swagger-ui/index.html`
+- MinIO API: `http://localhost:9000`
+- MinIO Console: `http://localhost:9001`
 
 ## Variaveis de ambiente
 ```env
@@ -39,7 +41,20 @@ JWT_SECRET=change-me-in-env-change-me-in-env-123456
 JWT_ACCESS_TTL_MIN=15
 JWT_REFRESH_TTL_DAYS=7
 SERVER_PORT=4444
+MINIO_ENDPOINT=http://localhost:9000
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=minioadmin123
+MINIO_BUCKET=meubolso-attachments
+MINIO_SECURE=false
+APP_STORAGE_MAX_FILE_SIZE_BYTES=10485760
 ```
+
+## MinIO
+- O `docker compose up -d` tambem sobe o MinIO e cria automaticamente o bucket `meubolso-attachments`.
+- Credenciais padrao:
+  - user: `minioadmin`
+  - password: `minioadmin123`
+- Acesse o console web em `http://localhost:9001`.
 
 ## Fluxo rapido de autenticacao (curl)
 Registrar usuario:
@@ -112,6 +127,10 @@ Transactions:
 - `GET /api/v1/transactions/{id}`
 - `PUT /api/v1/transactions/{id}`
 - `DELETE /api/v1/transactions/{id}`
+- `POST /api/v1/transactions/{id}/attachments` (multipart: campo `file`)
+- `GET /api/v1/transactions/{id}/attachments`
+- `GET /api/v1/transactions/{id}/attachments/{attachmentId}/download`
+- `DELETE /api/v1/transactions/{id}/attachments/{attachmentId}`
 
 Reports:
 - `GET /api/v1/reports/monthly?year=2026&month=2`

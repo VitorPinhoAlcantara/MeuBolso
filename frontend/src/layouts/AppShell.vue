@@ -64,7 +64,7 @@ onMounted(loadMe)
   <main class="app-shell">
     <aside class="sidebar">
       <div class="brand">
-        <h1>MeuBolso</h1>
+        <img src="/brand/logo.svg" alt="MeuBolso" class="brand-logo" />
         <p>Controle financeiro</p>
       </div>
 
@@ -112,7 +112,7 @@ onMounted(loadMe)
         <div class="profile-divider"></div>
         <span class="profile-title">Perfil</span>
         <button type="button" class="user-trigger" @click="showUserMenu = !showUserMenu">
-          <span class="avatar">{{ (userEmail || 'U').charAt(0).toUpperCase() }}</span>
+          <img src="/brand/badge.svg" alt="Avatar MeuBolso" class="avatar" />
           <span class="user-email">{{ userEmail || 'Usuário' }}</span>
           <span class="caret">▾</span>
         </button>
@@ -147,29 +147,34 @@ onMounted(loadMe)
 
 <style scoped>
 .app-shell {
-  min-height: 100vh;
+  height: 100vh;
   display: grid;
   grid-template-columns: 260px 1fr;
+  overflow: hidden;
 }
 
 .sidebar {
+  height: 100vh;
   background: var(--surface);
   border-right: 1px solid var(--border);
   padding: 24px 14px;
   display: flex;
   flex-direction: column;
   gap: 14px;
-}
-
-.brand h1 {
-  margin: 0;
-  font-size: 24px;
+  overflow-y: auto;
 }
 
 .brand p {
   margin: 4px 0 0;
   color: var(--muted);
   font-size: 14px;
+}
+
+.brand-logo {
+  display: block;
+  width: 100%;
+  max-width: 228px;
+  height: auto;
 }
 
 .brand {
@@ -274,15 +279,9 @@ onMounted(loadMe)
 }
 
 .avatar {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
-  background: var(--primary);
-  color: #fff;
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  font-weight: 700;
   flex: 0 0 auto;
 }
 
@@ -332,6 +331,8 @@ onMounted(loadMe)
 
 .content {
   padding: 24px 28px;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .content-topbar h2 {

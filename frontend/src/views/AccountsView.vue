@@ -177,7 +177,10 @@ onMounted(() => {
     </header>
 
     <p v-if="loading" class="muted">Carregando...</p>
-    <p v-else-if="!items.length" class="muted">Nenhuma conta cadastrada.</p>
+    <div v-else-if="!items.length" class="empty-state">
+      <img src="/brand/badge.svg" alt="MeuBolso" />
+      <p>Nenhuma conta cadastrada.</p>
+    </div>
 
     <table v-else class="table">
       <thead>
@@ -307,6 +310,29 @@ onMounted(() => {
 .muted {
   color: var(--muted);
   margin-top: 10px;
+}
+
+.empty-state {
+  margin-top: 14px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  min-height: 130px;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  text-align: center;
+  color: var(--muted);
+  padding: 14px;
+}
+
+.empty-state img {
+  width: 44px;
+  height: 44px;
+  opacity: 0.9;
+}
+
+.empty-state p {
+  margin: 0;
 }
 
 .modal-backdrop {

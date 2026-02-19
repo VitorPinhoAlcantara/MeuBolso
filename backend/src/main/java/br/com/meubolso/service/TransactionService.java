@@ -8,6 +8,7 @@ import br.com.meubolso.dto.TransactionCreateRequest;
 import br.com.meubolso.dto.TransactionResponse;
 import br.com.meubolso.repository.AccountRepository;
 import br.com.meubolso.repository.CategoryRepository;
+import br.com.meubolso.repository.TransactionAttachmentRepository;
 import br.com.meubolso.repository.TransactionRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,7 +19,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class TransactionService {
@@ -26,13 +29,19 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
+    private final TransactionAttachmentRepository transactionAttachmentRepository;
+    private final MinioStorageService minioStorageService;
 
     public TransactionService(TransactionRepository transactionRepository,
                               AccountRepository accountRepository,
-                              CategoryRepository categoryRepository) {
+                              CategoryRepository categoryRepository,
+                              TransactionAttachmentRepository transactionAttachmentRepository,
+                              MinioStorageService minioStorageService) {
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
         this.categoryRepository = categoryRepository;
+        this.transactionAttachmentRepository = transactionAttachmentRepository;
+        this.minioStorageService = minioStorageService;
     }
 
     @Transactional
@@ -64,13 +73,26 @@ public class TransactionService {
                                                    UUID accountId,
                                                    UUID categoryId,
                                                    Pageable pageable) {
-        return transactionRepository.findByUserWithFilters(userId, from, to, type, accountId, categoryId, pageable)
-                .map(this::toResponse);
+        Page<Transaction> page = transactionRepository.findByUserWithFilters(
+                userId, from, to, type, accountId, categoryId, pageable);
+
+        Map<UUID, Long> attachmentsCountByTransactionId = page.getContent().isEmpty()
+                ? Map.of()
+                : transactionAttachmentRepository
+                        .countByTransactionIds(page.getContent().stream().map(Transaction::getId).toList())
+                        .stream()
+                        .collect(Collectors.toMap(
+                                count -> count.getTransactionId(),
+                                count -> count.getTotal(),
+                                (a, b) -> a));
+
+        return page.map(transaction ->
+                toResponse(transaction, attachmentsCountByTransactionId.getOrDefault(transaction.getId(), 0L)));
     }
 
     public TransactionResponse findById(UUID userId, UUID transactionId) {
         Transaction transaction = findOwnedTransaction(userId, transactionId);
-        return toResponse(transaction);
+        return toResponse(transaction, transactionAttachmentRepository.countByTransactionId(transaction.getId()));
     }
 
     @Transactional
@@ -105,6 +127,11 @@ public class TransactionService {
     public void delete(UUID userId, UUID transactionId) {
         Transaction transaction = findOwnedTransaction(userId, transactionId);
         Account account = findOwnedAccount(userId, transaction.getAccountId());
+
+        transactionAttachmentRepository.findByTransactionIdAndUserId(transactionId, userId)
+                .forEach(attachment -> minioStorageService.delete(attachment.getStorageKey()));
+        transactionAttachmentRepository.deleteByTransactionId(transactionId);
+
         accountRepository.addToBalance(account.getId(), balanceDelta(transaction.getType(), transaction.getAmount()).negate());
         transactionRepository.delete(transaction);
     }
@@ -175,6 +202,23 @@ public class TransactionService {
         response.setAmount(transaction.getAmount());
         response.setDate(transaction.getTransactionDate());
         response.setDescription(transaction.getDescription());
+        response.setAttachmentsCount(transactionAttachmentRepository.countByTransactionId(transaction.getId()));
+        response.setCreatedAt(transaction.getCreatedAt());
+        response.setUpdatedAt(transaction.getUpdatedAt());
+        return response;
+    }
+
+    private TransactionResponse toResponse(Transaction transaction, long attachmentsCount) {
+        TransactionResponse response = new TransactionResponse();
+        response.setId(transaction.getId());
+        response.setUserId(transaction.getUserId());
+        response.setAccountId(transaction.getAccountId());
+        response.setCategoryId(transaction.getCategoryId());
+        response.setType(transaction.getType());
+        response.setAmount(transaction.getAmount());
+        response.setDate(transaction.getTransactionDate());
+        response.setDescription(transaction.getDescription());
+        response.setAttachmentsCount(attachmentsCount);
         response.setCreatedAt(transaction.getCreatedAt());
         response.setUpdatedAt(transaction.getUpdatedAt());
         return response;

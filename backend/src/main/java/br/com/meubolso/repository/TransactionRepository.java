@@ -9,9 +9,12 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
+
+  Optional<Transaction> findByIdAndUserId(UUID id, UUID userId);
 
   boolean existsByUserIdAndAccountId(UUID userId, UUID accountId);
 

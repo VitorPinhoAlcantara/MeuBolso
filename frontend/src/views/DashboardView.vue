@@ -252,7 +252,10 @@ onMounted(loadDashboard)
           </li>
         </ul>
 
-        <p v-else class="muted">Nenhuma conta cadastrada.</p>
+        <div v-else class="empty-state">
+          <img src="/brand/badge.svg" alt="MeuBolso" />
+          <p>Nenhuma conta cadastrada.</p>
+        </div>
       </article>
 
       <article class="panel">
@@ -322,7 +325,10 @@ onMounted(loadDashboard)
         </ul>
       </template>
 
-      <p v-else class="muted">Nenhuma despesa por conta no mês.</p>
+      <div v-else class="empty-state">
+        <img src="/brand/badge.svg" alt="MeuBolso" />
+        <p>Nenhuma despesa por conta no mês.</p>
+      </div>
     </article>
 
     <article class="panel">
@@ -342,7 +348,10 @@ onMounted(loadDashboard)
             <strong>{{ formatMoney(item.total) }}</strong>
           </li>
         </ul>
-        <p v-else class="muted">Nenhum gasto categorizado no mês.</p>
+        <div v-else class="empty-state">
+          <img src="/brand/badge.svg" alt="MeuBolso" />
+          <p>Nenhum gasto categorizado no mês.</p>
+        </div>
 
         <div class="pie-card">
           <div class="pie-chart" :style="categoryPieStyle">
@@ -640,6 +649,29 @@ onMounted(loadDashboard)
 .muted {
   color: var(--muted);
   margin-top: 12px;
+}
+
+.empty-state {
+  margin-top: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--muted);
+  padding: 14px;
+}
+
+.empty-state img {
+  width: 44px;
+  height: 44px;
+  opacity: 0.9;
+}
+
+.empty-state p {
+  margin: 0;
 }
 
 .error {

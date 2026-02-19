@@ -17,6 +17,7 @@ public class TransactionResponse {
     private BigDecimal amount;
     private LocalDate date;
     private String description;
+    private Long attachmentsCount;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
@@ -82,6 +83,14 @@ public class TransactionResponse {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Long getAttachmentsCount() {
+        return attachmentsCount;
+    }
+
+    public void setAttachmentsCount(Long attachmentsCount) {
+        this.attachmentsCount = attachmentsCount;
     }
 
     public OffsetDateTime getCreatedAt() {
